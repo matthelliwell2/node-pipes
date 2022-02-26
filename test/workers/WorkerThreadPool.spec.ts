@@ -70,7 +70,7 @@ describe('WorkerThreadPool.spec', () => {
         const end = new Date().getTime()
         console.log('Elapsed', end - start)
 
-        expect(end - start).toBeGreaterThan(200)
+        expect(end - start).toBeGreaterThan(150)
     })
 
     it('proceses buffered messages when thread is freed', async () => {
