@@ -1,18 +1,18 @@
 import { Condition } from '@divine/synchronization'
 import { Route } from '../../src/route/Route'
-import type { MessageToMainThread } from '../../src/workers/RouteThread'
 import { WorkerThreadPool } from '../../src/workers/WorkerThreadPool'
+import { simpleMultithreadedRoute } from './TestRoute'
 
-jest.setTimeout(30000)
+jest.setTimeout(9999999)
 
 describe('WorkerThreadPool.spec', () => {
     let workerFinishedCondition: Condition
-    let pool: WorkerThreadPool<MessageToMainThread>
+    let pool: WorkerThreadPool
 
     // TODO increase coverage
     beforeEach(() => {
         workerFinishedCondition = new Condition()
-        pool = new WorkerThreadPool<MessageToMainThread>(new Route(), { concurrency: 2, bufferSize: 2, filename: './dist/test/workers/RouteThread.js' }, workerFinishedCondition)
+        pool = new WorkerThreadPool(simpleMultithreadedRoute, { concurrency: 2, bufferSize: 2, filename: './dist/test/workers/RouteThread.js' }, workerFinishedCondition)
         pool.start()
     })
 
@@ -38,7 +38,7 @@ describe('WorkerThreadPool.spec', () => {
     })
 
     it('notifies when thread has finished processing', async () => {
-        await pool.push({ nodeId: 1, body: 1, metadata: {} })
+        await pool.push({ nodeId: 1, message: { body: 1, metadata: {} } })
 
         const start = new Date().getTime()
         await workerFinishedCondition.wait()
@@ -47,25 +47,26 @@ describe('WorkerThreadPool.spec', () => {
     })
 
     it('is busy when thread is processing message', async () => {
-        await pool.push({ nodeId: 1, body: 1, metadata: {} })
+        await pool.push({ nodeId: 1, message: { body: 1, metadata: {} } })
         expect(pool.isBusy).toBeTruthy()
     })
+
     it('is busy when message is buffered', async () => {
-        await pool.push({ nodeId: 1, body: 1, metadata: {} })
-        await pool.push({ nodeId: 1, body: 2, metadata: {} })
-        await pool.push({ nodeId: 1, body: 3, metadata: {} })
+        await pool.push({ nodeId: 1, message: { body: 1, metadata: {} } })
+        await pool.push({ nodeId: 1, message: { body: 2, metadata: {} } })
+        await pool.push({ nodeId: 1, message: { body: 3, metadata: {} } })
         expect(pool.isBusy).toBeTruthy()
     })
 
     it('blocks when buffer is full', async () => {
-        await pool.push({ nodeId: 1, body: 1, metadata: {} })
-        await pool.push({ nodeId: 1, body: 2, metadata: {} })
-        await pool.push({ nodeId: 1, body: 3, metadata: {} })
-        await pool.push({ nodeId: 1, body: 4, metadata: {} })
+        await pool.push({ nodeId: 1, message: { body: 1, metadata: {} } })
+        await pool.push({ nodeId: 1, message: { body: 2, metadata: {} } })
+        await pool.push({ nodeId: 1, message: { body: 3, metadata: {} } })
+        await pool.push({ nodeId: 1, message: { body: 4, metadata: {} } })
 
         // The 5th message will block until one of the other messages has finished which takes about 200ms due to sleep in it
         const start = new Date().getTime()
-        await pool.push({ nodeId: 1, body: 5, metadata: {} })
+        await pool.push({ nodeId: 1, message: { body: 5, metadata: {} } })
         const end = new Date().getTime()
         console.log('Elapsed', end - start)
 
@@ -74,18 +75,24 @@ describe('WorkerThreadPool.spec', () => {
 
     it('proceses buffered messages when thread is freed', async () => {
         const start = new Date().getTime()
-        await pool.push({ nodeId: 1, body: 1, metadata: {} })
-        await pool.push({ nodeId: 1, body: 2, metadata: {} })
-        await pool.push({ nodeId: 1, body: 3, metadata: {} })
-        await pool.push({ nodeId: 1, body: 4, metadata: {} })
+        // Two messages will be processed in the 2 threads
+        await pool.push({ nodeId: 1, message: { body: 1, metadata: {} } })
+        await pool.push({ nodeId: 1, message: { body: 2, metadata: {} } })
+        // Two messages will be buffered until the first two complete after about 200ms
+        await pool.push({ nodeId: 1, message: { body: 3, metadata: {} } })
+        await pool.push({ nodeId: 1, message: { body: 4, metadata: {} } })
+        // So when the 2nd two complete it should be about 400ms
+        await workerFinishedCondition.wait()
         const end = new Date().getTime()
 
         expect(end - start).toBeGreaterThan(400)
+
+        console.log('Elapsed time', end - start)
     })
 
     it('ignores calls to stop when not started', async () => {
         await pool.stop()
-        pool = new WorkerThreadPool<MessageToMainThread>(new Route(), { concurrency: 2, bufferSize: 2, filename: './dist/test/workers/RouteThread.js' }, workerFinishedCondition)
+        pool = new WorkerThreadPool(new Route(), { concurrency: 2, bufferSize: 2, filename: './dist/test/workers/RouteThread.js' }, workerFinishedCondition)
         await pool.stop()
     })
 })

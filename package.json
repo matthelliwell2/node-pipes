@@ -8,29 +8,34 @@
     "lint": "eslint . --max-warnings 0  --ext .ts",
     "test": "npx jest --silent --runInBand --coverage .*spec.*ts"
   },
-  "keywords": ["async", "worker threads", "pipes", "filters"],
+  "keywords": [
+    "async",
+    "worker threads",
+    "pipes",
+    "filters"
+  ],
   "author": {
     "name": "Matt Helliwell",
     "email": "me@matthelliwell.org"
   },
   "license": "ISC",
   "repository": {
-    "type" : "git",
-    "url" : "https://github.com/matthelliwell2/node-pipes.git"
+    "type": "git",
+    "url": "https://github.com/matthelliwell2/node-pipes.git"
   },
   "dependencies": {
     "@divine/synchronization": "1.2.1",
     "@rauschma/stringio": "1.4.0",
     "async": "3.2.3",
     "denque": "2.0.1",
-    "uuid": "^8.3.2"
+    "uuid": "8.3.2"
   },
   "devDependencies": {
     "@types/async": "3.2.12",
     "@types/jest": "27.0.3",
-    "@types/mockdate": "^3.0.0",
+    "@types/mockdate": "3.0.0",
     "@types/node": "17.0.5",
-    "@types/uuid": "^8.3.4",
+    "@types/uuid": "8.3.4",
     "@typescript-eslint/eslint-plugin": "5.10.0",
     "@typescript-eslint/parser": "5.10.0",
     "eslint": "8.5.0",
@@ -64,11 +69,12 @@
     "coveragePathIgnorePatterns": [
       "/node_modules/",
       "/test/",
-      "/__mocks__/"
+      "/__mocks__/",
+      "src/workers/RouteThread"
     ],
     "coverageThreshold": {
       "global": {
-        "branches": 80,
+        "branches": 75,
         "functions": 80,
         "lines": 80,
         "statements": 80

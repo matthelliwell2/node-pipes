@@ -14,6 +14,10 @@ let route: Route
 
 export interface ActionResultThreadMessage<B = unknown, M extends object = object> {
     threadId: number
+    /**
+     * The state of the worker thread
+     *  - processing: the thread is returning the result of an action to the main thread but might still be running other actions
+     */
     state: 'processing'
 
     /**
@@ -30,7 +34,6 @@ interface StateChangeThreadMessage {
      * The state of the worker thread
      *  - intialised: the thread is initialised and ready to process messages
      *  - finished: the thread has completed processing the last message it was sent and it ready to process another
-     *  - processing: the thread is returning the result of an action by to the main thread but might still be running other actions
      */
     state: 'initialised' | 'finished'
     info: string
@@ -38,7 +41,10 @@ interface StateChangeThreadMessage {
 
 export type MessageToMainThread = StateChangeThreadMessage | ActionResultThreadMessage
 
-parentPort?.on('message', (value: MessageToWorker | MessagePort): void => {
+parentPort?.on('message', processMessage)
+
+// TODO how to get good test coverage for this?
+function processMessage(value: MessageToWorker | MessagePort): void {
     if (value instanceof MessagePort) {
         console.log('Storing message port on thread', threadId)
         port = value
@@ -46,7 +52,7 @@ parentPort?.on('message', (value: MessageToWorker | MessagePort): void => {
         // Post a message back to the main thread to show it is ready to receive messages
         sendMessageToMainThread({ state: 'initialised', info: `Thread ${threadId} initialised`, threadId: threadId })
     } else {
-        console.log(`Got message in thread ${threadId}`)
+        console.log(new Date().toISOString(), `Got message in thread ${threadId}`)
         const action = route.getNode(value.nodeId)
         action
             .sendMessageToChildren(value.message)
@@ -60,7 +66,7 @@ parentPort?.on('message', (value: MessageToWorker | MessagePort): void => {
 
         // TODO error handling
     }
-})
+}
 
 export function sendMessageToMainThread(msg: MessageToMainThread): void {
     port.postMessage(msg)

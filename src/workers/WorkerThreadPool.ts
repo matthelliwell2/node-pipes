@@ -5,6 +5,8 @@ import type { Message } from '../actions/Action'
 import type { Route } from '../route/Route'
 import type { MessageToMainThread } from './RouteThread'
 
+// TODO clean up logging
+// TODO decent class/function level docs
 export interface ThreadPoolOptions {
     concurrency: number
     bufferSize: number
@@ -125,7 +127,7 @@ class ThreadManager {
     isBusy = true
 
     sendMessage(msg: MessageToWorker) {
-        console.log('TheadManager.sendMessage to thread', this.worker.threadId)
+        console.log(new Date().toISOString(), 'TheadManager.sendMessage to thread', this.worker.threadId)
         this.isBusy = true
         this.worker.postMessage(msg)
     }
@@ -135,7 +137,7 @@ class ThreadManager {
     }
 
     private readonly onMessage = (value: MessageToMainThread) => {
-        console.log('MAIN received message from thread', value.threadId, value.state)
+        console.log(new Date().toISOString(), 'MAIN received message from thread', value.threadId, value.state)
         switch (value.state) {
             case 'initialised':
                 // The thread is initially busy while it initialises. Once we get this message, it is ready to be sent messages
