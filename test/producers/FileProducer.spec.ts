@@ -65,7 +65,7 @@ describe('FileProducer.spec', () => {
             await sleep(10)
         })
 
-        producer.stop()
+        await producer.stop()
 
         await p
 

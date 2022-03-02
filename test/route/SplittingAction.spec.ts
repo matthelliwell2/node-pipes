@@ -1,14 +1,14 @@
-import { ArraySplittingAction } from '../../src/actions/SplittingAction'
+import { ArraySplittingAction } from '../../src/actions/EmittingAction'
 
 describe('Array Splitting Action', () => {
-    it('splits an array', () => {
+    it('splits an array', async () => {
         const result: unknown[] = []
         const action = new ArraySplittingAction<string, Record<string, number>>()
-        action.emit = (message): void => {
+        action.emit = async (message): Promise<void> => {
             result.push(message)
         }
 
-        action.onMessage({ body: ['foo', 'bar'], metadata: { length: 2 } })
+        await action.onMessage({ body: ['foo', 'bar'], metadata: { length: 2 } })
         expect(result).toEqual([
             {
                 body: 'foo',
@@ -21,8 +21,14 @@ describe('Array Splitting Action', () => {
         ])
     })
 
-    it('throws error if start not called', () => {
+    it('throws error if start not called', async () => {
         const action = new ArraySplittingAction<string, Record<string, unknown>>()
-        expect(() => action.onMessage({ body: ['foo', 'bar'], metadata: {} })).toThrow()
+
+        try {
+            await action.onMessage({ body: ['foo', 'bar'], metadata: {} })
+            fail('Expected error to be thrown')
+        } catch (err) {
+            // expected
+        }
     })
 })

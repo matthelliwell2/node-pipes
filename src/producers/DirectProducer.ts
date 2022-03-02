@@ -1,9 +1,9 @@
-import type { AsyncEmitter, Producer } from './Producer'
+import type { AsyncEmitter, Emitter } from '../actions/Action'
 
 /**
  * Injects messages into a producer after it has been created by calling the produce method.
  */
-export class DirectProducer<O> implements Producer<O, Record<string, never>> {
+export class DirectProducer<O> implements Emitter<O, Record<string, never>> {
     private emit?: AsyncEmitter<O, Record<string, never>>
 
     async start(emit: AsyncEmitter<O, Record<string, never>>): Promise<void> {
@@ -20,7 +20,8 @@ export class DirectProducer<O> implements Producer<O, Record<string, never>> {
         return this.emit({ body: message, metadata: {} })
     }
 
-    stop(): void {
+    async stop(): Promise<void> {
+        // We don't need to clean anything up but delete the emitter to catch any problems with produce being called again.
         delete this.emit
     }
 }

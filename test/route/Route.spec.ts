@@ -2,7 +2,7 @@
 import MockDate from 'mockdate'
 import type { Action } from '../../src/actions/Action'
 import type { Message } from '../../src/actions/Action'
-import { ArraySplittingAction } from '../../src/actions/SplittingAction'
+import { ArraySplittingAction } from '../../src/actions/EmittingAction'
 import { DirectProducer } from '../../src/producers/DirectProducer'
 import { Route } from '../../src/route/Route'
 import { sleep } from '../util'
@@ -32,7 +32,7 @@ describe('route', () => {
     })
 
     it('processes multithreaded route', async () => {
-        simpleMultithreadedRoute.start()
+        await simpleMultithreadedRoute.start()
 
         await testProducer.produce(1)
         await testProducer.produce(2)
@@ -49,8 +49,8 @@ describe('route', () => {
         const producer = new DirectProducer<number[]>()
 
         const result: Message<number, object>[] = []
-        route.from(producer).to(new ArraySplittingAction<number, object>()).collect(result)
-        route.start()
+        route.from(producer).toAsync(new ArraySplittingAction<number, object>()).collect(result)
+        await route.start()
 
         await producer.produce([10, 14, 1])
         await producer.produce([11, 15, 2])
@@ -60,7 +60,7 @@ describe('route', () => {
     it('processes simple synchronous route', async () => {
         // given
         route.from(testProducer).log().collect(messages)
-        route.start()
+        await route.start()
 
         // when
         await testProducer.produce(1)
@@ -81,7 +81,7 @@ describe('route', () => {
             })
             .collect(messages)
 
-        route.start()
+        await route.start()
 
         // when
         await testProducer.produce(200)
@@ -139,7 +139,7 @@ describe('route', () => {
             .log('Async route:')
             .collect(messages)
 
-        route.start()
+        await route.start()
 
         // when
         await testProducer.produce(10)
@@ -166,7 +166,7 @@ describe('route', () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const result: any[] = []
         route.from(testProducer).to(new TranslateAction()).collect(result)
-        route.start()
+        await route.start()
 
         // when
         await testProducer.produce(1)

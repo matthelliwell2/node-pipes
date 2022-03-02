@@ -53,7 +53,7 @@ describe('CollectionAction', () => {
         const messages = new Denque<Message<string, ProducerMetaData>>()
         const route = new Route()
         route.from(producer).collect(messages)
-        route.start()
+        await route.start()
 
         await producer.produce('a')
         await producer.produce('b')

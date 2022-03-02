@@ -1,5 +1,4 @@
-import type { Message } from '../actions/Action'
-import type { AsyncEmitter, Producer } from '../producers/Producer'
+import type { AsyncEmitter, Emitter, Message } from '../actions/Action'
 import { BaseNode } from './BaseNode'
 import type { Route } from './Route'
 import { v4 as uuid } from 'uuid'
@@ -9,22 +8,26 @@ export interface ProducerMetaData {
     producedDateTime: string
 }
 
+/**
+ * A node that contains a producer. When a message is emitted, it will add ProducerMetaData to the metadata and pass the message to the child nodes.
+ */
 export class ProducerNode<O, M extends object> extends BaseNode<O, M & ProducerMetaData> {
-    constructor(route: Route, private readonly producer: Producer<O, M>) {
+    constructor(route: Route, private readonly producer: Emitter<O, M>) {
         super(route)
     }
 
-    start(): void {
-        void this.producer.start(this.onMessageEmitted)
+    override async start(): Promise<void> {
+        await this.producer.start(this.onMessageEmitted)
+        await super.start()
     }
 
-    override stop(): void {
-        this.producer.stop()
-        super.stop()
+    override async stop(): Promise<void> {
+        await this.producer.stop()
+        await super.stop()
     }
 
     /**
-     * Called when a new message is available. As the producer has no actions it just needs to send the messages to each link
+     * Called when a new message is available. It just sends the messages to each link
      */
     private readonly onMessageEmitted: AsyncEmitter<O, M> = async (output: Message<O, M>): Promise<void> => {
         const updatedMetaData: M & ProducerMetaData = { ...output.metadata, producerMsgId: uuid(), producedDateTime: new Date().toISOString() }

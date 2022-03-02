@@ -1,6 +1,4 @@
-import Denque from 'denque'
 import type { Action, AsyncAction, Message } from '../actions/Action'
-import type { SplittingAction } from '../actions/SplittingAction'
 import { AsyncWorkerPool } from '../workers/AsyncWorkerPool'
 import { BaseNode } from './BaseNode'
 import type { Route } from './Route'
@@ -20,26 +18,16 @@ export class ActionNode<I, O, MI extends object, MO extends object = MI> extends
             await this.sendMessageToChildren(output)
         }
     }
-}
 
-export class SplittingActionNode<I, O, MI extends object, MO extends object = MI> extends BaseNode<O, MO> {
-    private readonly messages = new Denque<Message<O, MO>>()
-    constructor(route: Route, private readonly action: SplittingAction<I, O, MI, MO>) {
-        super(route)
-        action.emit = this.emitted
+    private readonly emitted = async (message: Message<O, MO>): Promise<void> => {
+        await this.sendMessageToChildren(message)
     }
 
-    onMessage = async (input: Message<I, MI>): Promise<void> => {
-        this.messages.clear()
-        this.action.onMessage(input)
-        while (!this.messages.isEmpty()) {
-            const message = this.messages.shift()!
-            await this.sendMessageToChildren(message)
+    override async start(): Promise<void> {
+        if (typeof this.action.start === 'function') {
+            await this.action.start(this.emitted)
         }
-    }
-
-    private readonly emitted = async (output: Message<O, MO>): Promise<void> => {
-        this.messages.push(output)
+        await super.start()
     }
 }
 
@@ -49,6 +37,7 @@ export class AsyncActionNode<I, O, MI extends object, MO extends object = MI> ex
     constructor(route: Route, private readonly action: AsyncAction<I, O, MI, MO>) {
         super(route)
         // TODO make concurrency and queue size configurable
+        // Unlike a thread, a worker pool does not need to start so we can just create it in the constructor
         this.workerPool = new AsyncWorkerPool(this.invokeAction, 2, 2, route.asyncWorkerFinished)
     }
 
@@ -56,13 +45,28 @@ export class AsyncActionNode<I, O, MI extends object, MO extends object = MI> ex
         return this.workerPool.push(message)
     }
 
+    private readonly emitted = async (message: Message<O, MO>): Promise<void> => {
+        await this.sendMessageToChildren(message)
+    }
+
     get isBusy(): boolean {
         return this.workerPool.isBusy
     }
 
-    override stop(): void {
+    override async stop(): Promise<void> {
         this.workerPool.stop()
-        super.stop()
+        if (typeof this.action.stop === 'function') {
+            await this.action.stop()
+        }
+        await super.stop()
+    }
+
+    // eslint-disable-next-line sonarjs/no-identical-functions
+    override async start(): Promise<void> {
+        if (typeof this.action.start === 'function') {
+            await this.action.start(this.emitted)
+        }
+        await super.start()
     }
 
     private readonly invokeAction = async (message: Message<I, MI>): Promise<Message<O, MO> | undefined> => {

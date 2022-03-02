@@ -5,7 +5,7 @@ import { AsyncFilterAction, FilterAction } from '../actions/FilterAction'
 import { LogAction } from '../actions/LogAction'
 import { ActionResultThreadMessage, sendMessageToMainThread } from '../workers/RouteThread'
 import type { MessageToWorker } from '../workers/WorkerThreadPool'
-import type { ActionNode, AsyncActionNode, SplittingActionNode } from './ActionNodes'
+import type { ActionNode, AsyncActionNode } from './ActionNodes'
 import type { Route } from './Route'
 
 /**
@@ -19,7 +19,7 @@ export class BaseNode<O, MO extends object> {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    protected readonly children: (ActionNode<O, any, MO, any> | SplittingActionNode<O, any, MO, any>)[] = []
+    protected readonly children: ActionNode<O, any, MO, any>[] = []
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     protected readonly asyncChildren: AsyncActionNode<O, any, MO, any>[] = []
@@ -122,12 +122,14 @@ export class BaseNode<O, MO extends object> {
     }
 
     /**
-     * Requests and child nodes are stopped. Override this method to do any actual processing necessary for stopping and this call super.stop()
+     * Override this method to do any processing necessary for stopping and this call super.stop() incase any functionality is added to this in the future
      */
-    stop(): void {
-        this.asyncChildren.forEach(link => link.stop())
-        this.children.forEach(link => link.stop())
-    }
+    async stop(): Promise<void> {}
+
+    /**
+     * Override this method to do any processing necessary for start and this call super.start() incase any functionality is added to this in the future
+     */
+    async start(): Promise<void> {}
 
     async sendMessageToChildren(message: Message<O, MO>): Promise<void> {
         if (this.runChildrenInWorkerThread && isMainThread) {

@@ -1,10 +1,8 @@
 import { Condition } from '@divine/synchronization'
 import { isMainThread } from 'worker_threads'
-import type { Action, AsyncAction } from '../actions/Action'
-import { SplittingAction } from '../actions/SplittingAction'
-import type { Producer } from '../producers/Producer'
+import type { Action, AsyncAction, Emitter } from '../actions/Action'
 import { ThreadPoolOptions, WorkerThreadPool } from '../workers/WorkerThreadPool'
-import { ActionNode, AsyncActionNode, SplittingActionNode } from './ActionNodes'
+import { ActionNode, AsyncActionNode } from './ActionNodes'
 import type { BaseNode } from './BaseNode'
 import { ProducerMetaData, ProducerNode } from './ProducerNode'
 
@@ -39,19 +37,38 @@ export class Route {
      */
     readonly asyncWorkerFinished = new Condition()
 
-    from<O, MO extends object>(producer: Producer<O, MO>): BaseNode<O, MO & ProducerMetaData> {
+    from<O, MO extends object>(producer: Emitter<O, MO>): BaseNode<O, MO & ProducerMetaData> {
         const newNode = new ProducerNode(this, producer)
         this.producers.push(newNode)
         this.idToBaseNodeMap.set(newNode.id, newNode)
         return newNode
     }
 
-    start(): void {
+    async start(): Promise<void> {
         if (this.workerThreadPool) {
             this.workerThreadPool.start()
         }
 
-        this.producers.forEach(producer => producer.start())
+        const promises: Promise<unknown>[] = []
+        this.actionToNodeMap.forEach(node => {
+            promises.push(node.start())
+        })
+
+        await Promise.all(promises)
+        promises.length = 0
+
+        this.asyncActionToAsyncNode.forEach(node => {
+            promises.push(node.start())
+        })
+
+        await Promise.all(promises)
+        promises.length = 0
+
+        // Start the producers last so they don't start producing messages until the rest of the route is initialised
+        this.producers.forEach(producer => {
+            promises.push(producer.start())
+        })
+        await Promise.all(promises)
     }
 
     /**
@@ -59,13 +76,30 @@ export class Route {
      * This may end up throwing errors
      */
     async stop(): Promise<void> {
-        // Kill the thread pool
         if (this.workerThreadPool) {
             await this.workerThreadPool.stop()
         }
 
-        // Ask produces to stop producing. This will cascade down to any async work pools and try and stop them as well
-        this.producers.forEach(p => p.stop())
+        const promises: Promise<unknown>[] = []
+        this.actionToNodeMap.forEach(node => {
+            promises.push(node.stop())
+        })
+
+        await Promise.all(promises)
+        promises.length = 0
+
+        this.asyncActionToAsyncNode.forEach(node => {
+            promises.push(node.stop())
+        })
+
+        await Promise.all(promises)
+        promises.length = 0
+
+        // Start the producers last so they don't start producing messages until the rest of the route is initialised
+        this.producers.forEach(producer => {
+            promises.push(producer.stop())
+        })
+        await Promise.all(promises)
     }
 
     /**
@@ -96,17 +130,10 @@ export class Route {
     /**
      * Actions are cached so if we add the same action twice to different parts of the route, we'll use the same node so they will have the same child links.
      */
-    cacheAction<I, O, MI extends object, MO extends object = MI>(
-        action: Action<I, O, MI, MO> | SplittingAction<I, O, MI, MO>
-    ): ActionNode<I, O, MI, MO> | SplittingActionNode<I, O, MI, MO> {
+    cacheAction<I, O, MI extends object, MO extends object = MI>(action: Action<I, O, MI, MO>): ActionNode<I, O, MI, MO> {
         if (this.actionToNodeMap.has(action)) {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return this.actionToNodeMap.get(action)!
-        } else if (action instanceof SplittingAction) {
-            const newNode = new SplittingActionNode(this, action)
-            this.actionToNodeMap.set(action, newNode)
-            this.idToBaseNodeMap.set(newNode.id, newNode)
-            return newNode
         } else {
             const newNode = new ActionNode(this, action)
             this.actionToNodeMap.set(action, newNode)
@@ -137,10 +164,7 @@ export class Route {
     }
 
     private readonly producers: ProducerNode<any, any>[] = []
-    private readonly actionToNodeMap = new Map<
-        Action<any, any, any, any> | SplittingAction<any, any, any, any>,
-        ActionNode<any, any, any, any> | SplittingActionNode<any, any, any, any>
-    >()
+    private readonly actionToNodeMap = new Map<Action<any, any, any, any>, ActionNode<any, any, any, any>>()
     private readonly asyncActionToAsyncNode = new Map<AsyncAction<any, any, any, any>, AsyncActionNode<any, any, any, any>>()
     private readonly idToBaseNodeMap = new Map<number, BaseNode<any, any>>()
 }

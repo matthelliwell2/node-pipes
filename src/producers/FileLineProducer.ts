@@ -1,6 +1,6 @@
-import * as fs from 'fs'
-import type { AsyncEmitter, Producer } from './Producer'
 import { chomp, chunksToLinesAsync } from '@rauschma/stringio'
+import * as fs from 'fs'
+import type { AsyncEmitter, Emitter } from '../actions/Action'
 
 export interface FileProducerMetadata {
     filePath: string
@@ -12,7 +12,7 @@ export interface FileProducerMetadata {
 /**
  * Produced a message for each line in a file. Once the last line is read a message with a negative line number will be send to indicate there are no more messages.
  */
-export class FileLineProducer implements Producer<string, FileProducerMetadata> {
+export class FileLineProducer implements Emitter<string, FileProducerMetadata> {
     private running = true
     constructor(public readonly filePath: string) {}
 
@@ -24,7 +24,7 @@ export class FileLineProducer implements Producer<string, FileProducerMetadata> 
         return this.streamFile(emit)
     }
 
-    stop(): void {
+    async stop(): Promise<void> {
         this.running = false
     }
 
