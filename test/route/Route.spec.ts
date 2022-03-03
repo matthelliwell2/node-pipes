@@ -54,7 +54,10 @@ describe('route', () => {
 
         await producer.produce([10, 14, 1])
         await producer.produce([11, 15, 2])
-        expect(result.map(m => m.body)).toEqual([10, 14, 1, 11, 15, 2])
+        await route.waitForWorkersToFinish()
+
+        // The messages are async so we can't guarantee their order so sort them
+        expect(result.map(m => m.body).sort((n1, n2) => n1 - n2)).toEqual([1, 2, 10, 11, 14, 15])
     })
 
     it('processes simple synchronous route', async () => {

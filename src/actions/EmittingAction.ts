@@ -25,7 +25,7 @@ export abstract class AsyncEmittingAction<I, O, MI extends object, MO extends ob
     abstract onMessage(message: Message<I, MI>): Promise<Message<O, MO> | undefined>
 }
 /**
- * Split an array into its individual elements.
+ * Split an array into its individual elements. It extends AsyncEmittingAction because it needs to call the async emit function as part of onMessage
  */
 export class ArraySplittingAction<E, MI extends object> extends AsyncEmittingAction<E[], E, MI, MI> {
     onMessage = async (message: Message<E[], MI>): Promise<Message<E, MI> | undefined> => {
