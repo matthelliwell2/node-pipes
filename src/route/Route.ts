@@ -37,7 +37,7 @@ export class Route {
      */
     readonly asyncWorkerFinished = new Condition()
 
-    from<O, MO extends object>(producer: Emitter<O, MO>): BaseNode<O, MO & ProducerMetaData> {
+    from<O, MO>(producer: Emitter<O, MO>): BaseNode<O, MO & ProducerMetaData> {
         const newNode = new ProducerNode(this, producer)
         this.producers.push(newNode)
         this.idToBaseNodeMap.set(newNode.id, newNode)
@@ -130,7 +130,7 @@ export class Route {
     /**
      * Actions are cached so if we add the same action twice to different parts of the route, we'll use the same node so they will have the same child links.
      */
-    cacheAction<I, O, MI extends object, MO extends object = MI>(action: Action<I, O, MI, MO>): ActionNode<I, O, MI, MO> {
+    cacheAction<BI, MI, BO, MO = MI>(action: Action<BI, MI, BO, MO>): ActionNode<BI, MI, BO, MO> {
         if (this.actionToNodeMap.has(action)) {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return this.actionToNodeMap.get(action)!
@@ -143,9 +143,9 @@ export class Route {
         }
     }
 
-    cacheAsyncAction<I, O, MI extends object, MO extends object = MI>(action: AsyncAction<I, O, MI, MO>): AsyncActionNode<I, O, MI, MO> {
+    cacheAsyncAction<BI, MI, BO, MO = MI>(action: AsyncAction<BI, MI, BO, MO>): AsyncActionNode<BI, MI, BO, MO> {
         if (this.asyncActionToAsyncNode.has(action)) {
-            return this.asyncActionToAsyncNode.get(action) as AsyncActionNode<I, O, MI, MO>
+            return this.asyncActionToAsyncNode.get(action) as AsyncActionNode<BI, MI, BO, MO>
         } else {
             const newNode = new AsyncActionNode(this, action)
             this.asyncActionToAsyncNode.set(action, newNode)

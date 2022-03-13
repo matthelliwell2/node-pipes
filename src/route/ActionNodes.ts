@@ -4,14 +4,15 @@ import { BaseNode } from './BaseNode'
 import type { Route } from './Route'
 
 /**
- * Contains an action object and a list of child nodes. It invokes the action object when a new message is received and passes the results to child node.
+ * Contains an action object and a list of child nodes. It invokes the action object when a new message is received and
+ * passes the results to child node.
  */
-export class ActionNode<I, O, MI extends object, MO extends object = MI> extends BaseNode<O, MO> {
-    constructor(route: Route, private readonly action: Action<I, O, MI, MO>) {
+export class ActionNode<BI, MI, BO, MO = MI> extends BaseNode<BO, MO> {
+    constructor(route: Route, private readonly action: Action<BI, MI, BO, MO>) {
         super(route)
     }
 
-    onMessage = async (input: Message<I, MI>): Promise<void> => {
+    onMessage = async (input: Message<BI, MI>): Promise<void> => {
         const output = this.action.onMessage(input)
 
         if (output !== undefined) {
@@ -19,7 +20,7 @@ export class ActionNode<I, O, MI extends object, MO extends object = MI> extends
         }
     }
 
-    private readonly emitted = async (message: Message<O, MO>): Promise<void> => {
+    private readonly emitted = async (message: Message<BO, MO>): Promise<void> => {
         await this.sendMessageToChildren(message)
     }
 
@@ -31,21 +32,21 @@ export class ActionNode<I, O, MI extends object, MO extends object = MI> extends
     }
 }
 
-export class AsyncActionNode<I, O, MI extends object, MO extends object = MI> extends BaseNode<O, MO> {
-    private readonly workerPool: AsyncWorkerPool<I, O, MI, MO>
+export class AsyncActionNode<BI, MI, BO, MO = MI> extends BaseNode<BO, MO> {
+    private readonly workerPool: AsyncWorkerPool<BI, MI, BO, MO>
 
-    constructor(route: Route, private readonly action: AsyncAction<I, O, MI, MO>) {
+    constructor(route: Route, private readonly action: AsyncAction<BI, MI, BO, MO>) {
         super(route)
         // TODO make concurrency and queue size configurable
         // Unlike a thread, a worker pool does not need to start so we can just create it in the constructor
         this.workerPool = new AsyncWorkerPool(this.invokeAction, 2, 2, route.asyncWorkerFinished)
     }
 
-    onMessage = async (message: Message<I, MI>): Promise<{ result: Promise<Message<O, MO> | undefined> }> => {
+    onMessage = async (message: Message<BI, MI>): Promise<{ result: Promise<Message<BO, MO> | undefined> }> => {
         return this.workerPool.push(message)
     }
 
-    private readonly emitted = async (message: Message<O, MO>): Promise<void> => {
+    private readonly emitted = async (message: Message<BO, MO>): Promise<void> => {
         await this.sendMessageToChildren(message)
     }
 
@@ -69,7 +70,7 @@ export class AsyncActionNode<I, O, MI extends object, MO extends object = MI> ex
         await super.start()
     }
 
-    private readonly invokeAction = async (message: Message<I, MI>): Promise<Message<O, MO> | undefined> => {
+    private readonly invokeAction = async (message: Message<BI, MI>): Promise<Message<BO, MO> | undefined> => {
         const output = await this.action.onMessage(message)
         if (output) {
             await this.sendMessageToChildren(output)

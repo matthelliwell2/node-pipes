@@ -3,15 +3,14 @@ import type { Action, Message } from './Action.js'
 import { AsyncEmittingAction } from './EmittingAction'
 
 /**
- * This is the opposite of the SplittingAction. It receives messages and transforms them into an array. It buffers the messages until the predicate returns true and then it
- * return all the messages gathered so far.
+ * This is the opposite of the SplittingAction. It receives messages and transforms them into an array. It buffers the
+ * messages until the predicate returns true and, then it returns all the messages gathered so far.
  */
-export class MergeAction<I, MI extends object> implements Action<I, I[], MI, MI[]> {
+export class MergeAction<I, MI> implements Action<I, MI, I[], MI[]> {
     private readonly buffer = new Denque<Message<I, MI>>()
 
     /**
      * @param predicate Function to determine whether to return the messages buffered so far
-     * @param timeout Optional timeout. If no messages are received within the timeout then the buffered messages are returned
      */
     constructor(private readonly predicate: (buffer: Denque<Message<I, MI>>) => boolean) {}
 
@@ -27,19 +26,20 @@ export class MergeAction<I, MI extends object> implements Action<I, I[], MI, MI[
     }
 }
 
-export class MergeActionWithTimeout<I, MI extends object> extends AsyncEmittingAction<I, I[], MI, MI[]> {
-    private readonly buffer = new Denque<Message<I, MI>>()
+export class MergeActionWithTimeout<BI, MI> extends AsyncEmittingAction<BI, MI, BI[], MI[]> {
+    private readonly buffer = new Denque<Message<BI, MI>>()
     private timer: NodeJS.Timeout | undefined
 
     /**
      * @param predicate Function to determine whether to return the messages buffered so far
-     * @param timeout Optional timeout. If no messages are received within the timeout then the buffered messages are returned
+     * @param timeout Optional timeout. If no messages are received within the timeout then the buffered messages are
+     *     returned
      */
-    constructor(private readonly predicate: (buffer: Denque<Message<I, MI>>) => boolean, private readonly timeout: number) {
+    constructor(private readonly predicate: (buffer: Denque<Message<BI, MI>>) => boolean, private readonly timeout: number) {
         super()
     }
 
-    onMessage = async (message: Message<I, MI>): Promise<undefined> => {
+    onMessage = async (message: Message<BI, MI>): Promise<undefined> => {
         if (!this.emit) {
             throw new Error('Has start been called on the route?')
         }
@@ -79,7 +79,7 @@ export class MergeActionWithTimeout<I, MI extends object> extends AsyncEmittingA
     }
 }
 
-function mergeMessages<I, MI extends object>(buffer: Denque<Message<I, MI>>): Message<I[], MI[]> {
+function mergeMessages<I, MI>(buffer: Denque<Message<I, MI>>): Message<I[], MI[]> {
     const bodies = buffer.toArray().map(msg => {
         return msg.body
     })

@@ -160,7 +160,7 @@ describe('route', () => {
     })
 
     it('allows action to ignore metadata without breaking type system', async () => {
-        class TranslateAction<MI extends object> implements Action<number, string, MI> {
+        class TranslateAction<MI> implements Action<number, MI, string> {
             onMessage(message: Message<number, MI>): Message<string, MI> | undefined {
                 return { body: message.body.toString(), metadata: message.metadata }
             }

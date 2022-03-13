@@ -6,27 +6,39 @@ import type { MessageToWorker } from './WorkerThreadPool'
 console.log('Starting worker thread', threadId)
 
 /**
- * This is the code that is run as a worker thread. Uses create their own file which includes this one and calls the register function.
+ * This is the code that is run as a worker thread. Uses create their own file which includes this one and calls the
+ * register function.
  */
 
 let port: MessagePort
 let route: Route
 
-export interface ActionResultThreadMessage<B = unknown, M extends object = object> {
+/**
+ * A message sent from a worker thread with the results of an action
+ */
+export interface ActionResultThreadMessage {
     threadId: number
+
     /**
      * The state of the worker thread
-     *  - processing: the thread is returning the result of an action to the main thread but might still be running other actions
+     *  - processing: the thread is returning the result of an action to the main thread but might still be running
+     * other actions
      */
     state: 'processing'
 
     /**
-     * The id of the node that produced the message so the threads needs to pass the message to all children of this node
+     * The id of the node that produced the message so the threads needs to pass the message to all children of this
+     * node
      */
     nodeId: number
-    message: Message<B, M>
+    // TODO can this be made more typesafe
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    message: Message<any, any>
 }
 
+/**
+ * A message sent from a worker thread when the thread state changes.
+ */
 interface StateChangeThreadMessage {
     threadId: number
 
@@ -60,7 +72,11 @@ function processMessage(value: MessageToWorker | MessagePort): void {
                 return route.waitForWorkersToFinish()
             })
             .then(() => {
-                sendMessageToMainThread({ state: 'finished', info: `Message processed in thread ${threadId}`, threadId: threadId })
+                sendMessageToMainThread({
+                    state: 'finished',
+                    info: `Message processed in thread ${threadId}`,
+                    threadId: threadId
+                })
             })
             .catch((err: unknown) => console.log('Error processing message', err))
 

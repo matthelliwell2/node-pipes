@@ -11,7 +11,7 @@ export interface ProducerMetaData {
 /**
  * A node that contains a producer. When a message is emitted, it will add ProducerMetaData to the metadata and pass the message to the child nodes.
  */
-export class ProducerNode<O, M extends object> extends BaseNode<O, M & ProducerMetaData> {
+export class ProducerNode<O, M> extends BaseNode<O, M & ProducerMetaData> {
     constructor(route: Route, private readonly producer: Emitter<O, M>) {
         super(route)
     }

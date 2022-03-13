@@ -1,9 +1,9 @@
 import type { Action, Message, OnMessage } from './Action'
 
-export class LogAction<I, MI extends object> implements Action<I, I, MI> {
+export class LogAction<BI, MI> implements Action<BI, MI, BI, MI> {
     constructor(private readonly prefix?: string) {}
 
-    onMessage: OnMessage<I, I, MI> = (message: Message<I, MI>): Message<I, MI> => {
+    onMessage: OnMessage<BI, MI, BI, MI> = (message: Message<BI, MI>): Message<BI, MI> => {
         if (this.prefix !== undefined) {
             console.log(this.prefix, message)
         } else {
