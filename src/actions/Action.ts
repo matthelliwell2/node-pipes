@@ -15,8 +15,8 @@ export interface Message<B, M> {
     metadata: M
 }
 
-export type AsyncOnMessage<BI, MI, BO, MO = MI> = (message: Message<BI, MI>) => Promise<Message<BO, MO> | undefined>
-export type OnMessage<BI, MI, BO, MO = MI> = (message: Message<BI, MI>) => Message<BO, MO> | undefined
+export type AsyncOnMessage<BI, MI, BO, MO = MI> = (message: Message<BI, MI>) => Promise<Message<BO, MO> | Message<BO, MO>[] | undefined>
+export type OnMessage<BI, MI, BO, MO = MI> = (message: Message<BI, MI>) => Message<BO, MO> | Message<BO, MO>[] | undefined
 export type AsyncEmitter<BO, MO> = (message: Message<BO, MO>) => Promise<void>
 
 /**

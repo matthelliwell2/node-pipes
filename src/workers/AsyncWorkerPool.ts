@@ -1,7 +1,7 @@
 import { Condition, Queue } from '@divine/synchronization'
 import type { Message } from '../actions/Action'
 
-export type Worker<I, O, MI, MO = MI> = (input: Message<I, MI>) => Promise<Message<O, MO> | undefined>
+export type Worker<I, O, MI, MO = MI> = (input: Message<I, MI>) => Promise<Message<O, MO> | Message<O, MO>[] | undefined>
 
 /**
  * Provides a pool of workers for processing asynchronous messages. The processing is limited to a fixed number of
@@ -62,7 +62,7 @@ export class AsyncWorkerPool<BI, MI, BO, MO = MI> {
      * Returns a promise that resolves when the message is added to the queue. The promise resolves to another promise
      * that has the result of the processing the message.
      */
-    async push(message: Message<BI, MI>): Promise<{ result: Promise<Message<BO, MO> | undefined> }> {
+    async push(message: Message<BI, MI>): Promise<{ result: Promise<Message<BO, MO> | Message<BO, MO>[] | undefined> }> {
         const queuePromise = this.buffer.pushOrWait(message)
         // We need to return a promise that will resolve once the item is on the queue so that when the queue is full
         // we can apply some back pressure.
@@ -72,7 +72,7 @@ export class AsyncWorkerPool<BI, MI, BO, MO = MI> {
                     // We need to let the caller get the value from the message processing. So we return anothe promise
                     // that resolves to this value. But we can't just return a promise in a promise as these will just
                     // get flatten out at runtime so the caller wouldn't be able to wait on the queue insert seperately
-                    // from the processing. Therefore we have to return a structure inside the promise so the caller
+                    // from the processing. Therefore, we have to return a structure inside the promise so the caller
                     // can do: const worker = await pool.push('abc') const result = await worker.promise
                     const p = this.processNextMessage()
                     resolve({ result: p })
@@ -87,7 +87,7 @@ export class AsyncWorkerPool<BI, MI, BO, MO = MI> {
      * This there is a message on the queue then it will try and pass it to a worker. If there are no free workers then
      * it will wait unil there are.
      */
-    private async processNextMessage(): Promise<Message<BO, MO> | undefined> {
+    private async processNextMessage(): Promise<Message<BO, MO> | Message<BO, MO>[] | undefined> {
         // This should only be called when something has been added to the queue so if there queue is empty something
         // has gone wrong
         if (this.buffer.isEmpty()) {
@@ -114,7 +114,7 @@ export class AsyncWorkerPool<BI, MI, BO, MO = MI> {
     /**
      * Calls the worker function for a message and notifies a waiter once it is complete.
      */
-    private async runWorker(msg: Message<BI, MI>): Promise<Message<BO, MO> | undefined> {
+    private async runWorker(msg: Message<BI, MI>): Promise<Message<BO, MO> | Message<BO, MO>[] | undefined> {
         ++this.count
         const result = await this.worker(msg)
         --this.count

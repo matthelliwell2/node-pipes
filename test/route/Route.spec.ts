@@ -2,11 +2,11 @@
 import MockDate from 'mockdate'
 import type { Action } from '../../src/actions/Action'
 import type { Message } from '../../src/actions/Action'
-import { ArraySplittingAction } from '../../src/actions/EmittingAction'
 import { DirectProducer } from '../../src/producers/DirectProducer'
 import { Route } from '../../src/route/Route'
 import { sleep } from '../util'
 import { routeOutput, simpleMultithreadedRoute, testProducer } from '../workers/TestRoute'
+import { ArraySplittingAction } from '../../src/actions/ArraySplittingAction'
 
 jest.setTimeout(9999999)
 

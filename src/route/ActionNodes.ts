@@ -15,7 +15,11 @@ export class ActionNode<BI, MI, BO, MO = MI> extends BaseNode<BO, MO> {
     onMessage = async (input: Message<BI, MI>): Promise<void> => {
         const output = this.action.onMessage(input)
 
-        if (output !== undefined) {
+        if (Array.isArray(output)) {
+            for (const msg of output) {
+                await this.sendMessageToChildren(msg)
+            }
+        } else if (output !== undefined) {
             await this.sendMessageToChildren(output)
         }
     }
@@ -42,7 +46,7 @@ export class AsyncActionNode<BI, MI, BO, MO = MI> extends BaseNode<BO, MO> {
         this.workerPool = new AsyncWorkerPool(this.invokeAction, 2, 2, route.asyncWorkerFinished)
     }
 
-    onMessage = async (message: Message<BI, MI>): Promise<{ result: Promise<Message<BO, MO> | undefined> }> => {
+    onMessage = async (message: Message<BI, MI>): Promise<{ result: Promise<Message<BO, MO> | Message<BO, MO>[] | undefined> }> => {
         return this.workerPool.push(message)
     }
 
@@ -70,9 +74,13 @@ export class AsyncActionNode<BI, MI, BO, MO = MI> extends BaseNode<BO, MO> {
         await super.start()
     }
 
-    private readonly invokeAction = async (message: Message<BI, MI>): Promise<Message<BO, MO> | undefined> => {
+    private readonly invokeAction = async (message: Message<BI, MI>): Promise<Message<BO, MO> | Message<BO, MO>[] | undefined> => {
         const output = await this.action.onMessage(message)
-        if (output) {
+        if (Array.isArray(output)) {
+            for (const msg of output) {
+                await this.sendMessageToChildren(msg)
+            }
+        } else if (output) {
             await this.sendMessageToChildren(output)
         }
 
