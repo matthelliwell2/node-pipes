@@ -1,6 +1,6 @@
 import { isMainThread, threadId } from 'worker_threads'
-import type { Action, AsyncAction, AsyncOnMessage, Message, OnMessage } from '../actions/Action'
-import { InterceptAction, InterceptActionMetadata, Pushable } from '../actions/InterceptAction'
+import type { Action, AsyncAction, AsyncOnMessage, Message, ProcessBody, ProcessMessage } from '../actions/Action'
+import { InterceptAction, Pushable } from '../actions/InterceptAction'
 import { AsyncFilterAction, FilterAction } from '../actions/FilterAction'
 import { LogAction } from '../actions/LogAction'
 import { ActionResultThreadMessage, sendMessageToMainThread } from '../workers/RouteThread'
@@ -12,17 +12,17 @@ import type { Route } from './Route'
  * BO - the output from the action contained in this node
  * MO - the metadata output from the action contained in this node
  */
-export class BaseNode<BO, MO> {
+export class BaseNode<BO> {
     private runChildrenInWorkerThread = false
     private get runChildrenInMainThread(): boolean {
         return !this.runChildrenInWorkerThread
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    protected readonly children: ActionNode<BO, MO, any, any>[] = []
+    protected readonly children: ActionNode<BO, any>[] = []
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    protected readonly asyncChildren: AsyncActionNode<BO, MO, any, any>[] = []
+    protected readonly asyncChildren: AsyncActionNode<BO, any>[] = []
 
     /**
      * A unique id assigned to this node by the framework.
@@ -34,11 +34,20 @@ export class BaseNode<BO, MO> {
     }
 
     /**
-     * Adds a synchronous action to a route
+     * Append a synchronous action to this node. The output from this node from the input to this action.
+     *
+     * @template BO - the type of the output from this node which will be passed to the action
+     * @template BO2 - the output type of this action
+     *
+     * Returns a new BaseNode who's outputs are BO2 and MO2
      */
-    to<BO2, MO2 = MO>(actionOrFunc: Action<BO, MO, BO2, MO2> | OnMessage<BO, MO, BO2, MO2>): BaseNode<BO2, MO2> {
+
+    to<BO2>(actionOrFunc: Action<BO, BO2>): BaseNode<BO2>
+    to<BO2>(actionOrFunc: ProcessMessage<BO, BO2>): BaseNode<BO2>
+    to<BO2>(actionOrFunc: ProcessBody<BO, BO2>): BaseNode<BO2>
+    to<BO2>(actionOrFunc: Action<BO, BO2> | ProcessMessage<BO, BO2> | ProcessBody<BO, BO2>): BaseNode<BO2> {
         if (typeof actionOrFunc === 'function') {
-            const action: Action<BO, MO, BO2, MO2> = { onMessage: actionOrFunc }
+            const action: Action<BO, BO2> = { onMessage: actionOrFunc }
             const newNode = this.route.cacheAction(action)
             this.children.push(newNode)
             return newNode
@@ -52,9 +61,9 @@ export class BaseNode<BO, MO> {
     /**
      * Add an async action to a route
      */
-    toAsync<BO2, MO2 = MO>(actionOrFunc: AsyncAction<BO, MO, BO2, MO2> | AsyncOnMessage<BO, MO, BO2, MO2>): BaseNode<BO2, MO2> {
+    toAsync<BO2>(actionOrFunc: AsyncAction<BO, BO2> | AsyncOnMessage<BO, BO2>): BaseNode<BO2> {
         if (typeof actionOrFunc === 'function') {
-            const action: AsyncAction<BO, MO, BO2, MO2> = { onMessage: actionOrFunc }
+            const action: AsyncAction<BO, BO2> = { onMessage: actionOrFunc }
             const newNode = this.route.cacheAsyncAction(action)
             this.asyncChildren.push(newNode)
             return newNode
@@ -65,32 +74,32 @@ export class BaseNode<BO, MO> {
         }
     }
 
-    log(prefix = ''): BaseNode<BO, MO> {
-        const action = new LogAction<BO, MO>(prefix)
+    log(prefix = ''): BaseNode<BO> {
+        const action = new LogAction<BO>(prefix)
         return this.to(action)
     }
 
     /**
      * Applies a synchronous filter to a message, passing the message on if the predicate returns true
      */
-    filter(predicate: (input: BO) => boolean): BaseNode<BO, MO> {
-        const action = new FilterAction<BO, MO>(predicate)
+    filter(predicate: (input: BO) => boolean): BaseNode<BO> {
+        const action = new FilterAction<BO>(predicate)
         return this.to(action)
     }
 
     /**
      * Applies a synchronous filter to a message, passing the message on if the predicate returns true
      */
-    asyncFilter(predicate: (input: BO) => Promise<boolean>): BaseNode<BO, MO> {
-        const action = new AsyncFilterAction<BO, MO>(predicate)
+    asyncFilter(predicate: (input: BO) => Promise<boolean>): BaseNode<BO> {
+        const action = new AsyncFilterAction<BO>(predicate)
         return this.toAsync(action)
     }
 
     /**
      * Adds messages to a queue or array and then passes the message unchanged to the next action
      */
-    collect(collection: Pushable<Message<BO, MO>>): BaseNode<BO, MO & InterceptActionMetadata> {
-        const action = new InterceptAction<BO, MO>(collection)
+    collect(collection: Pushable<Message<BO>>): BaseNode<BO> {
+        const action = new InterceptAction<BO>(collection)
         return this.to(action)
     }
 
@@ -106,7 +115,7 @@ export class BaseNode<BO, MO> {
     /**
      * All subsequent actions will run in a worker thread until the end of the route or main() is called
      */
-    worker(): BaseNode<BO, MO> {
+    worker(): BaseNode<BO> {
         if (!this.route.workerThreadPool && isMainThread) {
             throw new Error('Invalid route - thread pool options must be passed to route constructor')
         }
@@ -118,24 +127,24 @@ export class BaseNode<BO, MO> {
     /**
      * All subsequent actions will run in a main thread until the end of the route or worker() is called
      */
-    main(): BaseNode<BO, MO> {
+    main(): BaseNode<BO> {
         this.runChildrenInWorkerThread = false
         return this
     }
 
     /**
-     * Override this method to do any processing necessary for stopping and this call super.stop() incase any functionality is added to this in the future
+     * Override this method to do any processing necessary for stopping and this call super.stop() in case any functionality is added to this in the future
      */
     async stop(): Promise<void> {}
 
     /**
-     * Override this method to do any processing necessary for start and this call super.start() incase any functionality is added to this in the future
+     * Override this method to do any processing necessary for start and this call super.start() in case any functionality is added to this in the future
      */
     async start(): Promise<void> {}
 
-    async sendMessageToChildren(message: Message<BO, MO>): Promise<void> {
+    async sendMessageToChildren(message: Message<BO>): Promise<void> {
         if (this.runChildrenInWorkerThread && isMainThread) {
-            // Send the message to the workpool. The worker thread will need to know which action to execute so we need to pass the node id along with the message
+            // Send the message to the workerpool. The worker thread will need to know which action to execute so we need to pass the node id along with the message
             console.log('Route: Sending message to worker pool. msg:', message)
             const messageToThreads: MessageToWorker = { nodeId: this.id, message: message }
             await this.route.workerThreadPool?.push(messageToThreads)
@@ -148,7 +157,7 @@ export class BaseNode<BO, MO> {
             const promises = this.asyncChildren.map(async link => link.onMessage(message))
             await Promise.all(promises)
 
-            // Now process all the sychronous links. This may call other synchronous or async links before it returns.
+            // Now process all the synchronous links. This may call other synchronous or async links before it returns.
             // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             const p2 = this.children.map(async link => link.onMessage(message))
             await Promise.all(p2)

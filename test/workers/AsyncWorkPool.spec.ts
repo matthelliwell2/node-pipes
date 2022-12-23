@@ -3,10 +3,10 @@ import { AsyncWorkerPool } from '../../src/workers/AsyncWorkerPool'
 import { sleep } from '../util'
 
 describe('AsyncWorkPool', () => {
-    let pool: AsyncWorkerPool<string, Record<string, unknown>, string>
+    let pool: AsyncWorkerPool<string, string>
 
     beforeEach(() => {
-        pool = new AsyncWorkerPool<string, Record<string, unknown>, string>(
+        pool = new AsyncWorkerPool<string, string>(
             async msg => {
                 // Block the worker so we can test how many can run at once
                 await sleep(100)
@@ -47,7 +47,7 @@ describe('AsyncWorkPool', () => {
     it('should throw an exception if the queue size is less than one', async () => {
         expect(
             () =>
-                new AsyncWorkerPool<string, Record<string, unknown>, string>(
+                new AsyncWorkerPool<string, string>(
                     async msg => {
                         console.log(msg)
                         return msg
@@ -62,7 +62,7 @@ describe('AsyncWorkPool', () => {
     it('should throw an exception if the concurrently is less than one', () => {
         expect(
             () =>
-                new AsyncWorkerPool<string, Record<string, unknown>, string>(
+                new AsyncWorkerPool<string, string>(
                     async msg => {
                         console.log(msg)
                         return msg

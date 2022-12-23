@@ -15,11 +15,16 @@ export interface Pushable<E> {
  *
  * The action adds a timestamp to the metadata
  */
-export class InterceptAction<BI, MI> implements Action<BI, MI, BI, MI & InterceptActionMetadata> {
-    constructor(private readonly messages: Pushable<Message<BI, MI>>) {}
+export class InterceptAction<BI> implements Action<BI, BI> {
+    /**
+     * @param interceptedMessages The array or queue into which intercepted messages are pushed
+     */
+    constructor(private readonly interceptedMessages: Pushable<Message<BI>>) {}
 
-    onMessage = (message: Message<BI, MI>): Message<BI, MI & InterceptActionMetadata> => {
-        this.messages.push(message)
+    onMessage = (message: Message<BI>): Message<BI> => {
+        this.interceptedMessages.push(message)
+        // TODO what is the collectionDateTime meant to be doing?
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         return { body: message.body, metadata: { ...message.metadata, collectionDateTime: new Date().toISOString() } }
     }
 }

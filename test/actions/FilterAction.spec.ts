@@ -3,7 +3,6 @@ import { AsyncFilterAction, FilterAction } from '../../src/actions/FilterAction'
 import { DirectProducer } from '../../src/producers/DirectProducer'
 import Denque from 'denque'
 import type { Message } from '../../src/actions/Action'
-import type { ProducerMetaData } from '../../src/route/ProducerNode'
 import { Route } from '../../src/route/Route'
 import MockDate from 'mockdate'
 import { sleep } from '../util'
@@ -18,7 +17,7 @@ describe('FilterAction', () => {
     })
 
     it('filters messages', () => {
-        const action = new FilterAction<string, Record<string, string>>(msg => {
+        const action = new FilterAction<string>(msg => {
             return msg.startsWith('M')
         })
 
@@ -27,7 +26,7 @@ describe('FilterAction', () => {
     })
 
     it('async filters messages', async () => {
-        const action = new AsyncFilterAction<string, Record<string, string>>(async msg => {
+        const action = new AsyncFilterAction<string>(async msg => {
             await sleep(1)
             return msg.startsWith('M')
         })
@@ -38,7 +37,7 @@ describe('FilterAction', () => {
 
     it('filters messages with a function in a route', async function () {
         const producer = new DirectProducer<string>()
-        const messages = new Denque<Message<string, ProducerMetaData>>()
+        const messages = new Denque<Message<string>>()
         const route = new Route()
         route
             .from(producer)
@@ -55,7 +54,7 @@ describe('FilterAction', () => {
 
     it('filters messages with an async function in a route', async function () {
         const producer = new DirectProducer<string>()
-        const messages = new Denque<Message<string, ProducerMetaData>>()
+        const messages = new Denque<Message<string>>()
         const route = new Route()
         route
             .from(producer)
@@ -77,7 +76,7 @@ describe('FilterAction', () => {
 
     it('filters messages with an action in a route', async function () {
         const producer = new DirectProducer<string>()
-        const messages = new Denque<Message<string, ProducerMetaData>>()
+        const messages = new Denque<Message<string>>()
         const route = new Route()
         route
             .from(producer)
@@ -94,7 +93,7 @@ describe('FilterAction', () => {
 
     it('filters messages with an async action in a route', async function () {
         const producer = new DirectProducer<string>()
-        const messages = new Denque<Message<string, ProducerMetaData>>()
+        const messages = new Denque<Message<string>>()
         const route = new Route()
         route
             .from(producer)

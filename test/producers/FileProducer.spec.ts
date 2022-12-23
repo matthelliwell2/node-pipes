@@ -1,13 +1,13 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import type { Message } from '../../src/actions/Action'
-import { FileLineProducer, FileProducerMetadata } from '../../src/producers/FileLineProducer'
+import { FileLineProducer } from '../../src/producers/FileLineProducer'
 import { sleep } from '../util'
 
 describe('FileProducer.spec', () => {
     it('reads lines from file', async () => {
         const producer = new FileLineProducer('test/producers/sample.txt')
 
-        const lines: Message<string, FileProducerMetadata>[] = []
+        const lines: Message<string>[] = []
         await producer.start(async msg => {
             lines.push(msg)
         })

@@ -4,7 +4,7 @@ describe('LogAction.spec', () => {
     it('should log messages', () => {
         const consoleSpy = jest.spyOn(console, 'log')
 
-        const action = new LogAction<string, Record<string, string>>()
+        const action = new LogAction<string>()
         action.onMessage({ body: 'foo', metadata: {} })
         action.onMessage({ body: 'bar', metadata: { foobar: 'foobar' } })
 
@@ -12,7 +12,7 @@ describe('LogAction.spec', () => {
     })
 
     it('should pass through messages', () => {
-        const action = new LogAction<string, Record<string, string>>()
+        const action = new LogAction<string>()
         const result = action.onMessage({ body: 'bar', metadata: { foobar: 'foobar' } })
 
         expect(result).toEqual({ body: 'bar', metadata: { foobar: 'foobar' } })

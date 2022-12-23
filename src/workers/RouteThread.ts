@@ -33,7 +33,7 @@ export interface ActionResultThreadMessage {
     nodeId: number
     // TODO can this be made more typesafe
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    message: Message<any, any>
+    message: Message<any>
 }
 
 /**

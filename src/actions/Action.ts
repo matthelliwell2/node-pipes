@@ -1,23 +1,39 @@
 /**
  * The messages passed between actions.
  *
- * The message body and the metadata are both treated in a similar way when processing but are semantically different.
- * The body is the actual object you perform actions on and the metadata is information about the body. The framework
- * automatically added some specific metadata, such as a message id and  but beyond that you are free to use them how
- * you want. It is recommended that you always added to the metadata and return an updated object. That was the metadata
- * can be used to pass information between cooperating actions.
+ * The message body and the metadata are both treated in a similar way when processing but are intended to be used differently.
+ * The body is strongly typed and is used to pass data between child and parent actions. An action can do whatever it wants with the body and return whatever it whats
+ *
+ * The metadata should never be deleted, only added to. So if an action receives metadata but isn't interested in it, it should just return that same metadata.
+ *
+ * The framework automatically added some specific metadata, such as a message id and, but beyond that you are free to use them how
+ * you want add any fields that you want.
+ *
+ * To make life easier, there are helper functions that allow you define actions without worrying about the metadata. The framework will ensure that it is passed around unchanged.
  *
  * @template B The type of the message body
- * @template M The type of the metadata for the message
  */
-export interface Message<B, M> {
+export interface Message<B> {
+    /**
+     * The body of the message
+     */
     body: B
-    metadata: M
+
+    /**
+     * The metadata.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    metadata: any
 }
 
-export type AsyncOnMessage<BI, MI, BO, MO = MI> = (message: Message<BI, MI>) => Promise<Message<BO, MO> | Message<BO, MO>[] | undefined>
-export type OnMessage<BI, MI, BO, MO = MI> = (message: Message<BI, MI>) => Message<BO, MO> | Message<BO, MO>[] | undefined
-export type AsyncEmitter<BO, MO> = (message: Message<BO, MO>) => Promise<void>
+export type AsyncOnMessage<BI, BO> = (message: Message<BI>) => Promise<Message<BO> | Message<BO>[] | undefined>
+export type ProcessMessage<BI, BO> = (message: Message<BI>) => Message<BO> | Message<BO>[] | undefined
+export type ProcessBody<BI, BO> = (body: BI) => BO | BO[] | undefined
+
+/**
+ * An AsyncEmitter is a function that is used to generate messages that are processed by an async function
+ */
+export type AsyncEmitter<BO> = (message: Message<BO>) => Promise<void>
 
 /**
  * An action is an object that processes messages. It lives as part of a route so can receive messages from upstream
@@ -32,7 +48,7 @@ export type AsyncEmitter<BO, MO> = (message: Message<BO, MO>) => Promise<void>
  * it whenever it needs to produce a message.
  *
  * If the action only needs to produce a single message, calling emit is exactly the same as returning a message from
- * the onMessage method. However if the action need to produce multiple messages, or produce a message indepentently of
+ * the onMessage method. However if the action need to produce multiple messages, or produce a message independently of
  * when onMessage is called, you can call emit multiple times.
  *
  * If you implement the start function and need to free up resources when the route is stopped, make sure you implement
@@ -41,29 +57,27 @@ export type AsyncEmitter<BO, MO> = (message: Message<BO, MO>) => Promise<void>
  * If you call emit and return a value from onMessage, both messages will be processed.
  *
  * @template I the type of the body in the message passed into the onMessage call
- * @template MI the type of the metadata in the message passed into the onMessage call
  * @template O the type of the body in the message returned from the onMessage call or from the emit call
- * @template MO the type of the metadata in the message returned from the onMessage call or from the emit call
  */
-export interface Action<BI, MI, BO, MO = MI> extends Partial<Emitter<BO, MO>> {
+export interface Action<BI, BO> extends Partial<Emitter<BO>> {
     /**
      * The handler for a message. Once the action has done any processing on this it can return
      *  - undefined if no further processing is to be done on the message
      *  - a message to be passed to downstream actions
      */
-    onMessage: OnMessage<BI, MI, BO, MO>
+    onMessage: ProcessMessage<BI, BO>
 }
 
 /**
  * An interface to emitting messages out of sync from when messages are received. Note that if you are implementing
  * this as part of an action, it is possible for you to start emitting messages before all the route has initialised.
  */
-export interface Emitter<BO, MO> {
+export interface Emitter<BO> {
     /**
      * The framework will call this method when the route is started. It will pass in a function that can be called
      * when the action wants to send a message to the route.
      */
-    start: (emit: AsyncEmitter<BO, MO>) => Promise<unknown>
+    start: (emit: AsyncEmitter<BO>) => Promise<unknown>
 
     /**
      * Called when the route is being stopped. It should free any resource and stop producing any more messages. The
@@ -77,6 +91,6 @@ export interface Emitter<BO, MO> {
  * processing. The route will wait on the returned promise.
  * @see Action
  */
-export interface AsyncAction<BI, MI, BO, MO = MI> extends Partial<Emitter<BO, MO>> {
-    onMessage: AsyncOnMessage<BI, MI, BO, MO>
+export interface AsyncAction<BI, BO> extends Partial<Emitter<BO>> {
+    onMessage: AsyncOnMessage<BI, BO>
 }

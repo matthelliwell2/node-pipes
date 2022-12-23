@@ -1,15 +1,13 @@
-import MockDate from 'mockdate'
+import MockDate, * as Mockdate from 'mockdate'
 import { DirectProducer } from '../../src/producers/DirectProducer'
 import Denque from 'denque'
 import type { Message } from '../../src/actions/Action'
-import type { ProducerMetaData } from '../../src/route/ProducerNode'
 import { Route } from '../../src/route/Route'
-import * as Mockdate from 'mockdate'
 import { ArraySplittingAction } from '../../src/actions/ArraySplittingAction'
 
 describe('Array Splitting Action', () => {
     it('splits an array', async () => {
-        const action = new ArraySplittingAction<string, Record<string, number>>()
+        const action = new ArraySplittingAction<string>()
 
         const result = action.onMessage({ body: ['foo', 'bar'], metadata: { length: 2 } })
         expect(result).toEqual([
@@ -25,7 +23,7 @@ describe('Array Splitting Action', () => {
     })
 
     it('splits an empty array', async () => {
-        const action = new ArraySplittingAction<string, Record<string, number>>()
+        const action = new ArraySplittingAction<string>()
 
         const result = action.onMessage({ body: [], metadata: { length: 2 } })
         expect(result).toEqual([])
@@ -34,10 +32,10 @@ describe('Array Splitting Action', () => {
     it('splits array in a route', async function () {
         MockDate.set('2022-03-02T12:33:14Z')
         const producer = new DirectProducer<string[]>()
-        const messages = new Denque<Message<string, ProducerMetaData>>()
+        const messages = new Denque<Message<string>>()
         const route = new Route()
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        route.from(producer).to(new ArraySplittingAction<string, any>()).collect(messages)
+        route.from(producer).to(new ArraySplittingAction<string>()).collect(messages)
         await route.start()
 
         await producer.produce(['a', 'b'])

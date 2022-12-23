@@ -4,18 +4,21 @@ import type { Action, AsyncAction, Emitter } from '../actions/Action'
 import { ThreadPoolOptions, WorkerThreadPool } from '../workers/WorkerThreadPool'
 import { ActionNode, AsyncActionNode } from './ActionNodes'
 import type { BaseNode } from './BaseNode'
-import { ProducerMetaData, ProducerNode } from './ProducerNode'
+import { ProducerNode } from './ProducerNode'
 
 // TODO find way to only expose required methods
 // TODO add message history tracing
 // TODO exception handling/DLQ
 // TODO add a wiretap?
-// TODO send responses from work threads back to main thread so can aggregrate responses from threads
+// TODO send responses from work threads back to main thread so can aggregate responses from threads
 // TODO aggregator/batching mechanism, opposite of a splitter
+/**
+ * Holds are route. The route is made up of a number of nodes and a thread pool of worker threads. Each node contains an action that can receive and emit messages.
+ */
 export class Route {
     /**
-     * If you are going to be using worker threads then pass in threadPoolOptions to control the threadpool. You must pass this option in if you want to use threads when
-     * constructing the route in the main thread. In worker threads the parameter is ignored.
+     * If you are going to be using worker threads then pass in threadPoolOptions to control the thread pool. when constructing the route in the main thread,
+     * you must pass this option in if you want to use threads. In worker threads the parameter is ignored.
      */
     constructor(threadPoolOptions?: ThreadPoolOptions) {
         console.log(`Route constructor, isMainThread ${isMainThread}`)
@@ -26,24 +29,38 @@ export class Route {
 
     private currentNodeId = 0
 
+    /**
+     * Each node in a route is given a unique id. This is used with work threads to keep track of which nodes should execute their actions in which threads.
+     */
     get nextNodeId(): number {
         return ++this.currentNodeId
     }
 
+    /**
+     * The pool of worker threads used when running a multithreaded route.
+     */
     readonly workerThreadPool?: WorkerThreadPool
 
     /**
-     * Trigger when all async tasks for an action are complete or when a thread in the thread pool has finished processing a message
+     * Trigger when all async tasks for an action are complete or when a thread in the thread pool has finished processing a message. It is used to apply back pressure so messages
+     * don't get backed up.
      */
     readonly asyncWorkerFinished = new Condition()
 
-    from<O, MO>(producer: Emitter<O, MO>): BaseNode<O, MO & ProducerMetaData> {
+    /**
+     * The starting point for a route. A producer is a node that just emits messages without receiving any.
+     * @param producer
+     */
+    from<O>(producer: Emitter<O>): BaseNode<O> {
         const newNode = new ProducerNode(this, producer)
         this.producers.push(newNode)
         this.idToBaseNodeMap.set(newNode.id, newNode)
         return newNode
     }
 
+    /**
+     * Starts the route.
+     */
     async start(): Promise<void> {
         if (this.workerThreadPool) {
             this.workerThreadPool.start()
@@ -64,7 +81,7 @@ export class Route {
         await Promise.all(promises)
         promises.length = 0
 
-        // Start the producers last so they don't start producing messages until the rest of the route is initialised
+        // Start the producers last, so they don't start producing messages until the rest of the route is initialised
         this.producers.forEach(producer => {
             promises.push(producer.start())
         })
@@ -95,7 +112,7 @@ export class Route {
         await Promise.all(promises)
         promises.length = 0
 
-        // Start the producers last so they don't start producing messages until the rest of the route is initialised
+        // Start the producers last, so they don't start producing messages until the rest of the route is initialised
         this.producers.forEach(producer => {
             promises.push(producer.stop())
         })
@@ -130,7 +147,7 @@ export class Route {
     /**
      * Actions are cached so if we add the same action twice to different parts of the route, we'll use the same node so they will have the same child links.
      */
-    cacheAction<BI, MI, BO, MO = MI>(action: Action<BI, MI, BO, MO>): ActionNode<BI, MI, BO, MO> {
+    cacheAction<BI, BO>(action: Action<BI, BO>): ActionNode<BI, BO> {
         if (this.actionToNodeMap.has(action)) {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return this.actionToNodeMap.get(action)!
@@ -143,9 +160,9 @@ export class Route {
         }
     }
 
-    cacheAsyncAction<BI, MI, BO, MO = MI>(action: AsyncAction<BI, MI, BO, MO>): AsyncActionNode<BI, MI, BO, MO> {
+    cacheAsyncAction<BI, BO>(action: AsyncAction<BI, BO>): AsyncActionNode<BI, BO> {
         if (this.asyncActionToAsyncNode.has(action)) {
-            return this.asyncActionToAsyncNode.get(action) as AsyncActionNode<BI, MI, BO, MO>
+            return this.asyncActionToAsyncNode.get(action) as AsyncActionNode<BI, BO>
         } else {
             const newNode = new AsyncActionNode(this, action)
             this.asyncActionToAsyncNode.set(action, newNode)
@@ -156,15 +173,15 @@ export class Route {
     }
 
     /* eslint-disable @typescript-eslint/no-explicit-any */
-    getNode(id: number): BaseNode<any, any> {
+    getNode(id: number): BaseNode<any> {
         if (!this.idToBaseNodeMap.has(id)) {
             throw new Error(`Cannot find node with id ${id}`)
         }
         return this.idToBaseNodeMap.get(id)!
     }
 
-    private readonly producers: ProducerNode<any, any>[] = []
-    private readonly actionToNodeMap = new Map<Action<any, any, any, any>, ActionNode<any, any, any, any>>()
-    private readonly asyncActionToAsyncNode = new Map<AsyncAction<any, any, any, any>, AsyncActionNode<any, any, any, any>>()
-    private readonly idToBaseNodeMap = new Map<number, BaseNode<any, any>>()
+    private readonly producers: ProducerNode<any>[] = []
+    private readonly actionToNodeMap = new Map<Action<any, any>, ActionNode<any, any>>()
+    private readonly asyncActionToAsyncNode = new Map<AsyncAction<any, any>, AsyncActionNode<any, any>>()
+    private readonly idToBaseNodeMap = new Map<number, BaseNode<any>>()
 }

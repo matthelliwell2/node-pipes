@@ -38,6 +38,7 @@
     "include": [
         "src/**/*",
         "test/**/*",
+        "documentation/examples/**/*",
         "__mocks__"
     ],
     "exclude": [

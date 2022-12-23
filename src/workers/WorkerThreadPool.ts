@@ -15,7 +15,7 @@ export interface ThreadPoolOptions {
 
 export interface MessageToWorker {
     nodeId: number
-    message: Message<unknown, any>
+    message: Message<unknown>
 }
 
 export class WorkerThreadPool {

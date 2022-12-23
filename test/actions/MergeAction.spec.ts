@@ -4,7 +4,7 @@ import { sleep } from '../util'
 
 describe('MergeAction', () => {
     it('merges results until predicate is met', () => {
-        const action = new MergeAction<string, object>(messages => messages.length > 2)
+        const action = new MergeAction<string>(messages => messages.length > 2)
 
         expect(action.onMessage({ body: 'a', metadata: { count: 1 } })).toBeUndefined()
         expect(action.onMessage({ body: 'b', metadata: { count: 2 } })).toBeUndefined()
@@ -12,7 +12,7 @@ describe('MergeAction', () => {
     })
 
     it('resets the list of messages after they are returned', () => {
-        const action = new MergeAction<string, object>(messages => messages.length > 2)
+        const action = new MergeAction<string>(messages => messages.length > 2)
 
         action.onMessage({ body: 'a', metadata: { count: 1 } })
         action.onMessage({ body: 'b', metadata: { count: 2 } })
@@ -24,7 +24,7 @@ describe('MergeAction', () => {
     })
 
     it('throws errors if start not called', () => {
-        const action = new MergeAction<string, object>(messages => messages.length > 2)
+        const action = new MergeAction<string>(messages => messages.length > 2)
         try {
             action.onMessage({ body: 'a', metadata: { count: 1 } })
             fail('Exception should be thrown')
@@ -35,11 +35,11 @@ describe('MergeAction', () => {
 })
 
 describe('MergeActionWithTimeout', () => {
-    let result: Message<string[], object> | undefined = undefined
-    let action: MergeActionWithTimeout<string, object>
+    let result: Message<string[]> | undefined = undefined
+    let action: MergeActionWithTimeout<string>
 
     beforeEach(async () => {
-        action = new MergeActionWithTimeout<string, object>(messages => messages.length > 2, 100)
+        action = new MergeActionWithTimeout<string>(messages => messages.length > 2, 100)
         await action.start(async msg => {
             result = msg
         })
@@ -62,7 +62,7 @@ describe('MergeActionWithTimeout', () => {
     })
 
     it('throws errors if start not called', async () => {
-        action = new MergeActionWithTimeout<string, object>(messages => messages.length > 2, 100)
+        action = new MergeActionWithTimeout<string>(messages => messages.length > 2, 100)
         try {
             await action.onMessage({ body: 'a', metadata: { count: 1 } })
             fail('Exception should be thrown')

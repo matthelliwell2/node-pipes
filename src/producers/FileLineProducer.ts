@@ -8,11 +8,11 @@ export interface FileProducerMetadata {
     eof: boolean
 }
 
-// TODO add flag to contol if eof message emitted
+// TODO add flag to control if eof message emitted
 /**
  * Produced a message for each line in a file. Once the last line is read a message with a negative line number will be send to indicate there are no more messages.
  */
-export class FileLineProducer implements Emitter<string, FileProducerMetadata> {
+export class FileLineProducer implements Emitter<string> {
     private running = true
     constructor(public readonly filePath: string) {}
 
@@ -20,7 +20,7 @@ export class FileLineProducer implements Emitter<string, FileProducerMetadata> {
      * Starts the streaming from the file.
      * @return Promise that resolves once all the file has been processed.
      */
-    async start(emit: AsyncEmitter<string, FileProducerMetadata>): Promise<void> {
+    async start(emit: AsyncEmitter<string>): Promise<void> {
         return this.streamFile(emit)
     }
 
@@ -28,7 +28,7 @@ export class FileLineProducer implements Emitter<string, FileProducerMetadata> {
         this.running = false
     }
 
-    private async streamFile(emit: AsyncEmitter<string, FileProducerMetadata>): Promise<void> {
+    private async streamFile(emit: AsyncEmitter<string>): Promise<void> {
         const stream = fs.createReadStream(this.filePath)
         let lineNum = 0
         for await (const line of chunksToLinesAsync(stream)) {

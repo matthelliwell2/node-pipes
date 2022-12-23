@@ -3,10 +3,10 @@ import type { AsyncEmitter, Emitter } from '../actions/Action'
 /**
  * Injects messages into a producer after it has been created by calling the produce method.
  */
-export class DirectProducer<O> implements Emitter<O, Record<string, never>> {
-    private emit?: AsyncEmitter<O, Record<string, never>>
+export class DirectProducer<O> implements Emitter<O> {
+    private emit?: AsyncEmitter<O>
 
-    async start(emit: AsyncEmitter<O, Record<string, never>>): Promise<void> {
+    async start(emit: AsyncEmitter<O>): Promise<void> {
         this.emit = emit
     }
 

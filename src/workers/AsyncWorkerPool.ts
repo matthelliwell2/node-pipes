@@ -1,7 +1,7 @@
 import { Condition, Queue } from '@divine/synchronization'
 import type { Message } from '../actions/Action'
 
-export type Worker<I, O, MI, MO = MI> = (input: Message<I, MI>) => Promise<Message<O, MO> | Message<O, MO>[] | undefined>
+export type Worker<I, O> = (input: Message<I>) => Promise<Message<O> | Message<O>[] | undefined>
 
 /**
  * Provides a pool of workers for processing asynchronous messages. The processing is limited to a fixed number of
@@ -12,8 +12,8 @@ export type Worker<I, O, MI, MO = MI> = (input: Message<I, MI>) => Promise<Messa
  * <BI> - The type of message that is processed
  * <BO> - the type of object returned by the message processing
  */
-export class AsyncWorkerPool<BI, MI, BO, MO = MI> {
-    private readonly buffer: Queue<Message<BI, MI>>
+export class AsyncWorkerPool<BI, BO> {
+    private readonly buffer: Queue<Message<BI>>
     private count = 0
     private readonly workerFinishedCondition = new Condition()
 
@@ -24,12 +24,7 @@ export class AsyncWorkerPool<BI, MI, BO, MO = MI> {
      * @param allWorkersFinishedCondition A condition to be notified when a worker finished. This allows external
      *     callers to keep track if any workers are running.
      */
-    constructor(
-        private readonly worker: Worker<BI, BO, MI, MO>,
-        private readonly concurrency: number,
-        bufferSize: number,
-        private readonly allWorkersFinishedCondition: Condition
-    ) {
+    constructor(private readonly worker: Worker<BI, BO>, private readonly concurrency: number, bufferSize: number, private readonly allWorkersFinishedCondition: Condition) {
         if (bufferSize < 1) {
             throw new Error(`Buffer size of ${bufferSize} is not valid, it must be greater than or equal to one.`)
         }
@@ -37,7 +32,7 @@ export class AsyncWorkerPool<BI, MI, BO, MO = MI> {
         if (this.concurrency < 1) {
             throw new Error(`Concurrency of ${concurrency} is not valid, it must be greater than or equal to one.`)
         }
-        this.buffer = new Queue<Message<BI, MI>>(bufferSize)
+        this.buffer = new Queue<Message<BI>>(bufferSize)
     }
 
     get bufferSize(): number {
@@ -62,7 +57,7 @@ export class AsyncWorkerPool<BI, MI, BO, MO = MI> {
      * Returns a promise that resolves when the message is added to the queue. The promise resolves to another promise
      * that has the result of the processing the message.
      */
-    async push(message: Message<BI, MI>): Promise<{ result: Promise<Message<BO, MO> | Message<BO, MO>[] | undefined> }> {
+    async push(message: Message<BI>): Promise<{ result: Promise<Message<BO> | Message<BO>[] | undefined> }> {
         const queuePromise = this.buffer.pushOrWait(message)
         // We need to return a promise that will resolve once the item is on the queue so that when the queue is full
         // we can apply some back pressure.
@@ -87,7 +82,7 @@ export class AsyncWorkerPool<BI, MI, BO, MO = MI> {
      * This there is a message on the queue then it will try and pass it to a worker. If there are no free workers then
      * it will wait unil there are.
      */
-    private async processNextMessage(): Promise<Message<BO, MO> | Message<BO, MO>[] | undefined> {
+    private async processNextMessage(): Promise<Message<BO> | Message<BO>[] | undefined> {
         // This should only be called when something has been added to the queue so if there queue is empty something
         // has gone wrong
         if (this.buffer.isEmpty()) {
@@ -114,7 +109,7 @@ export class AsyncWorkerPool<BI, MI, BO, MO = MI> {
     /**
      * Calls the worker function for a message and notifies a waiter once it is complete.
      */
-    private async runWorker(msg: Message<BI, MI>): Promise<Message<BO, MO> | Message<BO, MO>[] | undefined> {
+    private async runWorker(msg: Message<BI>): Promise<Message<BO> | Message<BO>[] | undefined> {
         ++this.count
         const result = await this.worker(msg)
         --this.count

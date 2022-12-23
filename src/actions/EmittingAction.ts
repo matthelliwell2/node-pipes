@@ -6,22 +6,22 @@ import type { Action, AsyncAction, AsyncEmitter, Message } from './Action'
  * that, use the AsyncEmitterAction. The emit function has to be async because it will pass the emitted message to
  * child nodes which may be asynchronous themselves.
  */
-export abstract class EmittingAction<BI, MI, BO, MO = MI> implements Action<BI, MI, BO, MO> {
-    emit?: AsyncEmitter<BO, MO>
+export abstract class EmittingAction<BI, BO> implements Action<BI, BO> {
+    emit?: AsyncEmitter<BO>
 
-    async start(emit: AsyncEmitter<BO, MO>): Promise<void> {
+    async start(emit: AsyncEmitter<BO>): Promise<void> {
         this.emit = emit
     }
 
-    abstract onMessage(message: Message<BI, MI>): Message<BO, MO> | undefined
+    abstract onMessage(message: Message<BI>): Message<BO> | undefined
 }
 
-export abstract class AsyncEmittingAction<BI, MI, BO, MO = MI> implements AsyncAction<BI, MI, BO, MO> {
-    emit?: AsyncEmitter<BO, MO>
+export abstract class AsyncEmittingAction<BI, BO> implements AsyncAction<BI, BO> {
+    emit?: AsyncEmitter<BO>
 
-    async start(emit: AsyncEmitter<BO, MO>): Promise<void> {
+    async start(emit: AsyncEmitter<BO>): Promise<void> {
         this.emit = emit
     }
 
-    abstract onMessage(message: Message<BI, MI>): Promise<Message<BO, MO> | undefined>
+    abstract onMessage(message: Message<BI>): Promise<Message<BO> | undefined>
 }
