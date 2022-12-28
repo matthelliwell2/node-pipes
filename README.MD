@@ -20,17 +20,19 @@ Actions are where you write your application logic, whether it's calculating an 
 
 ### Messages
 
-Messages are the input and output from actions. Each action receives a single message as input and can produce multiple messages as its output.
+Messages are the input and output from actions. Each action receives a single message as input and can produce single, multiple or no messages as its output.
+
+A message consists of a strongly-typed body and metadata. Most of the time you can ignore the metadata and just worry about passing your objects between the actions in the route.
 
 ### Routes
 
-A route is a graph of actions. It defines how actions are linked together. For example, the file reader action above might pass it's messages to a database to persist each line as a separate row. Actions don't know about each other, all they see are messages coming and messages going on. They don't know who send them the message or where the output messages are sent. This is all controlled by the route. This makes it easier to compose new routes using existing actions.
+A route is a graph of actions. It defines how actions are linked together. For example, the file reader action above might pass its messages to a database to persist each line as a separate row. Actions don't know about each other, all they see are messages coming and messages going on. They don't know who send them the message or where the output messages are sent. This is all controlled by the route. This makes it easier to compose new routes using existing actions.
 
 ### Producers
 
-A producer is a think that feeds messages into a route. For example if you put the file reader action from above, it would just sit there until it got a message. A producer sends a message to the first action in a route so the route will actually do something useful. The library comes with some standard producers but its easy to add your own so you can integrate external systems into the route.
+A producer is a think that feeds messages into a route. For example if you put the file reader action from above, it would just sit there until it got a message. A producer sends a message to the first action in a route so the route will actually do something useful. The library comes with some standard producers but it's easy to add your own so you can integrate external systems into the route.
 
-For example you might have a file of ISBN numbers for books. A producer will produce a message for each line in the file. This is passed to an action that looks up the author and title of the book in a database. The author and title are passed to a second action that writes them a database.
+For example, you might have a file of ISBN for books. A producer will produce a message for each line in the file. This is passed to an action that looks up the author and title of the book in a database. The author and title are passed to a second action that writes them a database.
 
 ### Back pressure
 

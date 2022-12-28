@@ -75,10 +75,13 @@ describe('route', () => {
         // given
         route
             .from(testProducer)
-            .toAsync(async value => {
-                await sleep(value.body)
-                return value
-            })
+            .toAsync(
+                async message => {
+                    await sleep(message.body)
+                    return message
+                },
+                { handleMetadata: true }
+            )
             .collect(messages)
 
         await route.start()

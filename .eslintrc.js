@@ -99,6 +99,9 @@ module.exports = {
         '@typescript-eslint/no-shadow': ['warn'],
 
         'no-unused-expressions': 'off',
-        '@typescript-eslint/no-unused-expressions': ['warn']
+        '@typescript-eslint/no-unused-expressions': ['warn'],
+
+        'no-unused-vars': 'off',
+        '@typescript-eslint/no-unused-vars': ['error']
     }
 }

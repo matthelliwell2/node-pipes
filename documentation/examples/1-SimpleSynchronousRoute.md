@@ -15,7 +15,7 @@ You need something at the start of the route that will generate messages. The li
 const testProducer = new DirectProducer<number>()
 ```
 
-Note that the producer is strongly typed, so you know that it will always produce a particuarly type of message, in this case, a number.
+Note that the producer is strongly typed, so you know that it will always produce a message with the specified type of body, in this case, a number.
 
 We want to do something with the numbers. As this is an example, we will double each number so let's define a function that takes a number and doubles it
 
@@ -23,27 +23,14 @@ We want to do something with the numbers. As this is an example, we will double 
 function double(num:number):number {
     return num * 2
 }
-
 ```
 
 For this example we want to be able to see what's happened. We'll define an array get use the prefined Collect action to store all the messages it receives in an array, which we can then examine.
 
 ```typescript
-const results:number[] = []
+const results: Message<number>[] = []
 ```
 
-Finally we can put all these together to form the route
+We can then put these together to form the route.
 
-```typescript
-import { Route } from '../../src/route/Route'
-import { DirectProducer } from '../../src/producers/DirectProducer'
-
-const route = new Route()
-const testProducer = new DirectProducer<number>()
-
-function double(num:number):number {
-    return num * 2
-}
-
-route.from(testProducer).to(double).collect(results)
-```
+See [example 1](1-SimpleSynchronousRoute.spec.ts) for a demonstration

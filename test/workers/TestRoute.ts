@@ -8,9 +8,13 @@ export const simpleMultithreadedRoute = new Route({ filename: './dist/test/worke
 simpleMultithreadedRoute
     .from(testProducer)
     .worker()
-    .toAsync(async msg => {
-        await sleep(200)
-        return { body: msg.body + 1, metadata: msg.metadata }
-    })
+    .toAsync(
+        async msg => {
+            await sleep(200)
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            return { body: msg.body + 1, metadata: msg.metadata }
+        },
+        { handleMetadata: true }
+    )
     .main()
     .collect(routeOutput)

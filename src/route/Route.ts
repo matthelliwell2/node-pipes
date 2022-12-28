@@ -2,7 +2,7 @@ import { Condition } from '@divine/synchronization'
 import { isMainThread } from 'worker_threads'
 import type { Action, AsyncAction, Emitter } from '../actions/Action'
 import { ThreadPoolOptions, WorkerThreadPool } from '../workers/WorkerThreadPool'
-import { ActionNode, AsyncActionNode } from './ActionNodes'
+import { ActionNode, AsyncActionNode, AsyncNodeParams } from './ActionNodes'
 import type { BaseNode } from './BaseNode'
 import { ProducerNode } from './ProducerNode'
 
@@ -147,7 +147,7 @@ export class Route {
     /**
      * Actions are cached so if we add the same action twice to different parts of the route, we'll use the same node so they will have the same child links.
      */
-    cacheAction<BI, BO>(action: Action<BI, BO>): ActionNode<BI, BO> {
+    getAction<BI, BO>(action: Action<BI, BO>): ActionNode<BI, BO> {
         if (this.actionToNodeMap.has(action)) {
             // eslint-disable-next-line @typescript-eslint/no-unsafe-return
             return this.actionToNodeMap.get(action)!
@@ -160,11 +160,11 @@ export class Route {
         }
     }
 
-    cacheAsyncAction<BI, BO>(action: AsyncAction<BI, BO>): AsyncActionNode<BI, BO> {
+    getAsyncNode<BI, BO>(action: AsyncAction<BI, BO>, params: AsyncNodeParams): AsyncActionNode<BI, BO> {
         if (this.asyncActionToAsyncNode.has(action)) {
             return this.asyncActionToAsyncNode.get(action) as AsyncActionNode<BI, BO>
         } else {
-            const newNode = new AsyncActionNode(this, action)
+            const newNode = new AsyncActionNode(this, action, params)
             this.asyncActionToAsyncNode.set(action, newNode)
             this.idToBaseNodeMap.set(newNode.id, newNode)
 

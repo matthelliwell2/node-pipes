@@ -36,14 +36,22 @@ export class ActionNode<BI, BO> extends BaseNode<BO> {
     }
 }
 
+export interface AsyncNodeParams {
+    bufferSize?: number
+    concurrency?: number
+}
+
+/**
+ * A node on a route containg an async action. It manages a pool and queue to control the async functions.
+ */
 export class AsyncActionNode<BI, BO> extends BaseNode<BO> {
     private readonly workerPool: AsyncWorkerPool<BI, BO>
 
-    constructor(route: Route, private readonly action: AsyncAction<BI, BO>) {
+    constructor(route: Route, private readonly action: AsyncAction<BI, BO>, params: AsyncNodeParams) {
         super(route)
         // TODO make concurrency and queue size configurable
         // Unlike a thread, a worker pool does not need to start so we can just create it in the constructor
-        this.workerPool = new AsyncWorkerPool(this.invokeAction, 2, 2, route.asyncWorkerFinished)
+        this.workerPool = new AsyncWorkerPool(this.invokeAction, params.concurrency ?? 2, params.bufferSize ?? 2, route.asyncWorkerFinished)
     }
 
     onMessage = async (message: Message<BI>): Promise<{ result: Promise<Message<BO> | Message<BO>[] | undefined> }> => {

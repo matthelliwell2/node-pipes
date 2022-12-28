@@ -3,8 +3,6 @@ import type { Message } from '../actions/Action'
 import type { Route } from '../route/Route'
 import type { MessageToWorker } from './WorkerThreadPool'
 
-console.log('Starting worker thread', threadId)
-
 /**
  * This is the code that is run as a worker thread. Uses create their own file which includes this one and calls the
  * register function.
