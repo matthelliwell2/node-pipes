@@ -129,7 +129,13 @@ export interface Emitter<BO> {
      * The framework will call this method when the route is started. It will pass in a function that can be called
      * when the action wants to send a message to the route.
      */
-    start: (emit: AsyncEmitter<BO>) => Promise<unknown>
+    start(emit: AsyncEmitter<BO>): Promise<unknown>
+
+    /**
+     * The framework will call this method when waitForWorkersToFinish. It should emit or discard any buffered messages
+     * to ensure all requires messages are processed.
+     */
+    flush(): Promise<void>
 
     /**
      * Called when the route is being stopped. It should free any resource and stop producing any more messages. The

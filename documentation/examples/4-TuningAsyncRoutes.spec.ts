@@ -9,13 +9,13 @@ interface BookInfo {
 
 async function getBookInfo(isbn: string): Promise<BookInfo> {
     // To simulate an http call, we'll return some fixed data after a short delay
-    console.log(new Date(), 'ENTER: getBookInfo')
+    console.log(new Date(), 'ENTER: getBookInfo', isbn)
     await sleep(1)
     console.log(new Date(), 'EXIT: getBookInfo')
     return { author: 'M Helliwell', title: '10 facts about Typescript', datePublished: '2035-06-04' }
 }
 async function updateBookInfo(bookInfo: BookInfo): Promise<void> {
-    // To simular a database call, we'll just add a delay
+    // To simulate a database call, we'll just add a delay
     console.log(new Date(), 'ENTER: updateBookInfo', bookInfo)
     await sleep(2000)
     console.log(new Date(), 'EXIT: updateBookInfo')

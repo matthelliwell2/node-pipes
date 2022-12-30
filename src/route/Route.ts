@@ -120,7 +120,7 @@ export class Route {
     }
 
     /**
-     * Waits for any running async workers and threads to complete.
+     * Flushes any actions and waits for any running async workers and threads to complete.
      */
     async waitForWorkersToFinish(): Promise<void> {
         while (this.isBusy) {
@@ -160,7 +160,7 @@ export class Route {
         }
     }
 
-    getAsyncNode<BI, BO>(action: AsyncAction<BI, BO>, params: AsyncNodeParams): AsyncActionNode<BI, BO> {
+    getAsyncNode<BI, BO>(action: AsyncAction<BI, BO>, params?: AsyncNodeParams): AsyncActionNode<BI, BO> {
         if (this.asyncActionToAsyncNode.has(action)) {
             return this.asyncActionToAsyncNode.get(action) as AsyncActionNode<BI, BO>
         } else {

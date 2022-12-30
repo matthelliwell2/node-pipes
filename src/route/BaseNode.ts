@@ -51,12 +51,12 @@ export class BaseNode<BO> {
      *
      * Returns a new Node to which you can add more actions.
      */
-    to<BO2>(actionOrFunc: Action<BO, BO2>): BaseNode<BO2>
-    to<BO2>(actionOrFunc: ProcessMessage<BO, BO2>, handleMetadata: true): BaseNode<BO2>
-    to<BO2>(actionOrFunc: ProcessBody<BO, BO2>, handleMetadata: false): BaseNode<BO2>
-    to<BO2>(actionOrFunc: Action<BO, BO2> | ProcessMessage<BO, BO2> | ProcessBody<BO, BO2>, handleMetadata = false): BaseNode<BO2> {
+    to<BO2>(actionOrFunc: Action<BO, BO2>, params?: unknown): BaseNode<BO2>
+    to<BO2>(actionOrFunc: ProcessMessage<BO, BO2>, params: { handleMetadata: true }): BaseNode<BO2>
+    to<BO2>(actionOrFunc: ProcessBody<BO, BO2>, params: { handleMetadata: false }): BaseNode<BO2>
+    to<BO2>(actionOrFunc: Action<BO, BO2> | ProcessMessage<BO, BO2> | ProcessBody<BO, BO2>, params: { handleMetadata: boolean }): BaseNode<BO2> {
         if (typeof actionOrFunc === 'function') {
-            const action = handleMetadata ? actionFromProcessMessage(actionOrFunc as ProcessMessage<BO, BO2>) : actionFromProcessBody(actionOrFunc as ProcessBody<BO, BO2>)
+            const action = params.handleMetadata ? actionFromProcessMessage(actionOrFunc as ProcessMessage<BO, BO2>) : actionFromProcessBody(actionOrFunc as ProcessBody<BO, BO2>)
 
             const newNode = this.route.getAction(action)
             this.children.push(newNode)
@@ -76,11 +76,11 @@ export class BaseNode<BO> {
     toAsync<BO2>(actionOrFunc: AsyncProcessBody<BO, BO2>, params: AsyncNodeParams & { handleMetadata: false }): BaseNode<BO2>
     toAsync<BO2>(
         actionOrFunc: AsyncAction<BO, BO2> | AsyncProcessMessage<BO, BO2> | AsyncProcessBody<BO, BO2>,
-        params: AsyncNodeParams & { handleMetadata?: boolean }
+        params?: AsyncNodeParams & { handleMetadata?: boolean }
     ): BaseNode<BO2> {
         if (typeof actionOrFunc === 'function') {
             const action =
-                params.handleMetadata === true
+                params!.handleMetadata === true
                     ? asyncActionFromProcessMessage(actionOrFunc as AsyncProcessMessage<BO, BO2>)
                     : asyncActionFromProcessBody(actionOrFunc as AsyncProcessBody<BO, BO2>)
 
@@ -123,19 +123,6 @@ export class BaseNode<BO> {
         const action = new InterceptAction<BO>(collection)
         return this.to(action)
     }
-    // TODO allow collecting bodies only
-    // collectBodies(collection: Pushable<BO>): BaseNode<BO> {
-    //     const action = new InterceptAction<BO>(collection)
-    //     return this.to(action)
-    // }
-    /**
-     * Add a split action to the route that will split an array or denq into individual messages
-     * TODO get this to work. It should only be available if O is an array or queue
-     */
-    // split<A extends Array<BO>>(): BaseNode<A, MO> {
-    //     const action = new ArraySplittingAction<BO, MO>()
-    //     return this.to(action)
-    // }
 
     /**
      * All subsequent actions will run in a worker thread until the end of the route or main() is called

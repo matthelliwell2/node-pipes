@@ -39,6 +39,8 @@ export class MergeActionWithTimeout<BI> extends AsyncEmittingAction<BI, BI[]> {
         super()
     }
 
+    async flush(): Promise<void> {}
+
     onMessage = async (message: Message<BI>): Promise<undefined> => {
         if (!this.emit) {
             throw new Error('Has start been called on the route?')

@@ -23,5 +23,7 @@ export abstract class AsyncEmittingAction<BI, BO> implements AsyncAction<BI, BO>
         this.emit = emit
     }
 
+    async flush(): Promise<void> {}
+
     abstract onMessage(message: Message<BI>): Promise<Message<BO> | undefined>
 }

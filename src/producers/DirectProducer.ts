@@ -26,4 +26,9 @@ export class DirectProducer<O> implements Emitter<O> {
         // We don't need to clean anything up but delete the emitter to catch any problems with produce being called again.
         delete this.emit
     }
+
+    /**
+     * No messages are buffered so no need to do anything
+     */
+    async flush(): Promise<void> {}
 }

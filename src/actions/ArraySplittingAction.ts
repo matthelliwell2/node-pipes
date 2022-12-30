@@ -1,5 +1,6 @@
 import type { Action, Message } from './Action'
 
+// TODO do we need this?
 /**
  * Splits a message whose body is an array into messages where each element is a separate message
  */
