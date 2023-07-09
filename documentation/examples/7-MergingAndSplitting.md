@@ -52,5 +52,15 @@ Running the [example](7-MergingAndSplitting.spec.ts) will show you the length of
 
 # Merging
 
-Doing the opposite of this is also common. For example when writing to a database, we might want to collect several messages together and write them as a single batch. The framework has a MergeAction class to do this for you. It lets you merge messages based on a predicate and a timeout so you don't wait indefinitely for the predicate to complete. For example suppose I am writing to AWS Dynamodb and want to write up to 25 messages at a time as that is the maximum batch size. However, if I haven't received 25 messages with 5 seconds, I'll write whatever I have.
+Doing the opposite of this is also common. For example when writing to a database, we might want to collect several messages together and write them as a single batch. The framework has a [MergeAction](../../src/actions/MergeAction.ts) class to do this for you. It lets you merge messages based on a predicate and a timeout so you don't wait indefinitely for the predicate to complete. For example suppose I am writing to AWS Dynamodb and want to write up to 25 messages at a time as that is the maximum batch size. However, if I haven't received 25 messages with 5 seconds, I'll write whatever I have.
+
+I can add a new MergeAction o the route:
+```typescript
+.toAsync(
+    new MergeAction(q => {
+        return q.length >= 25
+    }, 5000)
+)
+```
+The next step in the route will then receive an array of objects, with a maximum size of 25.
 

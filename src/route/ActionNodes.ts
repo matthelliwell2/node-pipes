@@ -65,6 +65,18 @@ export class AsyncActionNode<BI, BO> extends BaseNode<BO> {
         return this.workerPool.isBusy
     }
 
+    /**
+     * Calls flush on the action if the method is defined.
+     * @return the result of calling flush or false if flush was not defined.
+     */
+    async flush(): Promise<boolean> {
+        if (this.action.flush) {
+            return await this.action.flush()
+        } else {
+            return false
+        }
+    }
+
     override async stop(): Promise<void> {
         this.workerPool.stop()
         if (typeof this.action.stop === 'function') {

@@ -10,7 +10,7 @@ describe('Simple Synchronous Route', function () {
 
         route
             .from(testProducer)
-            .to(value => value * 2, false) // Just double each value passed in
+            .to(value => value * 2, { handleMetadata: false }) // Just double each value passed in
             .collect(results)
 
         await route.start()

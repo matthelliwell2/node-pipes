@@ -6,7 +6,7 @@
     "build": "npm run compile && npm run lint && npm run test",
     "compile": "tsc",
     "lint": "eslint . --max-warnings 0  --ext .ts",
-    "test": "npx jest --silent --runInBand --coverage *.spec.*ts",
+    "test": "npx jest --silent --coverage *.spec.ts",
     "upgrade": "npx ncu --upgrade"
   },
   "keywords": [

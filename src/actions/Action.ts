@@ -134,8 +134,9 @@ export interface Emitter<BO> {
     /**
      * The framework will call this method when waitForWorkersToFinish. It should emit or discard any buffered messages
      * to ensure all requires messages are processed.
+     * @return true if there were any messages to flush, false otherwise
      */
-    flush(): Promise<void>
+    flush(): Promise<boolean>
 
     /**
      * Called when the route is being stopped. It should free any resource and stop producing any more messages. The

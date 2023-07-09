@@ -9,7 +9,7 @@ interface BookInfo {
 
 async function getBookInfo(isbn: string): Promise<BookInfo> {
     // To simulate an http call, we'll return some fixed data after a short delay
-    console.log(new Date(), 'ENTER: getBookInfo')
+    console.log(new Date(), 'ENTER: getBookInfo', isbn)
     await sleep(100)
     console.log(new Date(), 'EXIT: getBookInfo')
     return { author: 'M Helliwell', title: '10 facts about Typescript', datePublished: '2035-06-04' }

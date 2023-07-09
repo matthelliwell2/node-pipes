@@ -30,5 +30,7 @@ export class DirectProducer<O> implements Emitter<O> {
     /**
      * No messages are buffered so no need to do anything
      */
-    async flush(): Promise<void> {}
+    async flush(): Promise<boolean> {
+        return false
+    }
 }

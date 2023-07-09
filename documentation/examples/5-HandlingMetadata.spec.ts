@@ -9,7 +9,7 @@ interface BookInfo {
 
 async function getBookInfo(isbn: string): Promise<BookInfo> {
     // To simulate an http call, we'll return some fixed data after a short delay
-    console.log(new Date(), 'ENTER: getBookInfo')
+    console.log(new Date(), 'ENTER: getBookInfo', isbn)
     await sleep(1)
     console.log(new Date(), 'EXIT: getBookInfo')
     return { author: 'M Helliwell', title: '10 facts about Typescript', datePublished: '2035-06-04' }
@@ -35,12 +35,15 @@ describe('Handling metadata', function () {
             .from(isbnProducer)
             .toAsync(getBookInfo, { handleMetadata: false })
             .toAsync(updateBookInfo, { handleMetadata: false, bufferSize: 15, concurrency: 10 })
-            .to(message => {
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-                const producedAt = new Date(message.metadata.producedDateTime).getTime()
-                console.log('Elapsed time:', new Date().getTime() - producedAt, 'ms')
-                return message
-            }, true)
+            .to(
+                message => {
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument,@typescript-eslint/no-unsafe-member-access
+                    const producedAt = new Date(message.metadata.producedDateTime).getTime()
+                    console.log('Elapsed time:', new Date().getTime() - producedAt, 'ms')
+                    return message
+                },
+                { handleMetadata: true }
+            )
 
         await route.start()
 

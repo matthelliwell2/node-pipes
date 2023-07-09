@@ -13,12 +13,14 @@ import { ProducerNode } from './ProducerNode'
 // TODO send responses from work threads back to main thread so can aggregate responses from threads
 // TODO aggregator/batching mechanism, opposite of a splitter
 /**
- * Holds are route. The route is made up of a number of nodes and a thread pool of worker threads. Each node contains an action that can receive and emit messages.
+ * Holds are route. The route is made up of a number of nodes and a thread pool of worker threads. Each node contains
+ * an action that can receive and emit messages.
  */
 export class Route {
     /**
-     * If you are going to be using worker threads then pass in threadPoolOptions to control the thread pool. when constructing the route in the main thread,
-     * you must pass this option in if you want to use threads. In worker threads the parameter is ignored.
+     * If you are going to be using worker threads then pass in threadPoolOptions to control the thread pool. when
+     * constructing the route in the main thread, you must pass this option in if you want to use threads. In worker
+     * threads the parameter is ignored.
      */
     constructor(threadPoolOptions?: ThreadPoolOptions) {
         console.log(`Route constructor, isMainThread ${isMainThread}`)
@@ -30,7 +32,8 @@ export class Route {
     private currentNodeId = 0
 
     /**
-     * Each node in a route is given a unique id. This is used with work threads to keep track of which nodes should execute their actions in which threads.
+     * Each node in a route is given a unique id. This is used with work threads to keep track of which nodes should
+     * execute their actions in which threads.
      */
     get nextNodeId(): number {
         return ++this.currentNodeId
@@ -42,8 +45,8 @@ export class Route {
     readonly workerThreadPool?: WorkerThreadPool
 
     /**
-     * Trigger when all async tasks for an action are complete or when a thread in the thread pool has finished processing a message. It is used to apply back pressure so messages
-     * don't get backed up.
+     * Trigger when all async tasks for an action are complete or when a thread in the thread pool has finished
+     * processing a message. It is used to apply back pressure so messages don't get backed up.
      */
     readonly asyncWorkerFinished = new Condition()
 
@@ -89,8 +92,8 @@ export class Route {
     }
 
     /**
-     * Stops the threads in the thread pool, discards any messages waiting to be processed and asks producers to stop producing messages. Pending messages may still be processed.
-     * This may end up throwing errors
+     * Stops the threads in the thread pool, discards any messages waiting to be processed and asks producers to stop
+     * producing messages. Pending messages may still be processed. This may end up throwing errors
      */
     async stop(): Promise<void> {
         if (this.workerThreadPool) {
@@ -120,13 +123,34 @@ export class Route {
     }
 
     /**
-     * Flushes any actions and waits for any running async workers and threads to complete.
+     * Flushes any actions and waits for any running async workers and threads to complete. Because a call to flush
+     * mught result is more data that needs to be flushed, we have to loop around until there is nothing left to
+     * flush.
      */
     async waitForWorkersToFinish(): Promise<void> {
-        while (this.isBusy) {
-            // This will be notified when a thread completes processing or all the workers in an async worker pool have finished.
-            await this.asyncWorkerFinished.wait()
+        let dataFlushed = true
+        while (dataFlushed) {
+            dataFlushed = await this.flush()
+            while (this.isBusy) {
+                // This will be notified when a thread completes processing or all the workers in an async worker pool
+                // have finished.
+                await this.asyncWorkerFinished.wait()
+            }
         }
+    }
+
+    /**
+     * Calls flush on all the async nodes.
+     * @return true if any of the flush calls returned true
+     */
+    async flush(): Promise<boolean> {
+        const promises: Promise<boolean>[] = []
+        this.asyncActionToAsyncNode.forEach(node => {
+            promises.push(node.flush())
+        })
+
+        const results = await Promise.all(promises)
+        return results.includes(true)
     }
 
     get isBusy(): boolean {
@@ -145,7 +169,8 @@ export class Route {
     }
 
     /**
-     * Actions are cached so if we add the same action twice to different parts of the route, we'll use the same node so they will have the same child links.
+     * Actions are cached so if we add the same action twice to different parts of the route, we'll use the same node
+     * so they will have the same child links.
      */
     getAction<BI, BO>(action: Action<BI, BO>): ActionNode<BI, BO> {
         if (this.actionToNodeMap.has(action)) {

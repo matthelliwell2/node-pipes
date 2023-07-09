@@ -1,32 +1,9 @@
+/* eslint-disable sonarjs/no-duplicate-string */
 import Denque from 'denque'
-import type { Action, Message } from './Action.js'
+import type { Message } from './Action.js'
 import { AsyncEmittingAction } from './EmittingAction'
 
-/**
- * This is the opposite of the SplittingAction. It receives messages and transforms them into an array. It buffers the
- * messages until the predicate returns true and, then it returns all the messages gathered so far.
- */
-export class MergeAction<I> implements Action<I, I[]> {
-    private readonly buffer = new Denque<Message<I>>()
-
-    /**
-     * @param predicate Function to determine whether to return the messages buffered so far
-     */
-    constructor(private readonly predicate: (buffer: Denque<Message<I>>) => boolean) {}
-
-    onMessage = (message: Message<I>): Message<I[]> | undefined => {
-        this.buffer.push(message)
-        if (this.predicate(this.buffer)) {
-            const result = mergeMessages(this.buffer)
-            this.buffer.clear()
-            return result
-        } else {
-            return undefined
-        }
-    }
-}
-
-export class MergeActionWithTimeout<BI> extends AsyncEmittingAction<BI, BI[]> {
+export class MergeAction<BI> extends AsyncEmittingAction<BI, BI[]> {
     private readonly buffer = new Denque<Message<BI>>()
     private timer: NodeJS.Timeout | undefined
 
@@ -39,7 +16,20 @@ export class MergeActionWithTimeout<BI> extends AsyncEmittingAction<BI, BI[]> {
         super()
     }
 
-    async flush(): Promise<void> {}
+    override async flush(): Promise<boolean> {
+        if (!this.emit) {
+            throw new Error('Has start been called on the route?')
+        }
+
+        if (this.buffer.length > 0) {
+            const result = mergeMessages(this.buffer)
+            this.buffer.clear()
+            await this.emit(result)
+            return true
+        } else {
+            return false
+        }
+    }
 
     onMessage = async (message: Message<BI>): Promise<undefined> => {
         if (!this.emit) {

@@ -10,11 +10,16 @@ export interface FileProducerMetadata {
 
 // TODO add flag to control if eof message emitted
 /**
- * Produced a message for each line in a file. Once the last line is read a message with a negative line number will be send to indicate there are no more messages.
+ * Produced a message for each line in a file. Once the last line is read a message with a negative line number will be
+ * send to indicate there are no more messages.
  */
 export class FileLineProducer implements Emitter<string> {
     private running = true
     constructor(public readonly filePath: string) {}
+
+    async flush(): Promise<boolean> {
+        return false
+    }
 
     /**
      * Starts the streaming from the file.
